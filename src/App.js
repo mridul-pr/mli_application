@@ -24,12 +24,26 @@ const Logo = () => (
   </div>
 );
 
+// Loading Screen Component
+const LoadingScreen = () => (
+  <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-indigo-600 mx-auto mb-4"></div>
+      <h2 className="text-2xl font-bold text-gray-800 mb-2">Loading...</h2>
+      <p className="text-gray-600">
+        Please wait while we prepare your experience
+      </p>
+    </div>
+  </div>
+);
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Products page state
   const [products, setProducts] = useState([]);
@@ -39,12 +53,21 @@ function App() {
   const [calculation, setCalculation] = useState(null);
   const [loadingFields, setLoadingFields] = useState(false);
   const [calculating, setCalculating] = useState(false);
+  const [calculationError, setCalculationError] = useState("");
   const resultRef = useRef(null);
 
   const validCredentials = [
     { email: "raksha@hrlabs.in", password: "password123" },
     { email: "vijay@hrlabs.in", password: "password123" },
   ];
+
+  // Simulate initial loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setInitialLoading(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (calculation && resultRef.current) {
@@ -98,6 +121,7 @@ function App() {
     setFields([]);
     setFormValues({});
     setCalculation(null);
+    setCalculationError("");
 
     try {
       const response = await fetch(
@@ -134,13 +158,22 @@ function App() {
   };
 
   const handleCalculatePrice = async () => {
+    console.log("Calculate button clicked");
     setCalculating(true);
+    setCalculationError("");
+    setCalculation(null);
 
     const values = {};
     fields.forEach((field) => {
       const value = formValues[field.field];
       values[field.field] =
         value === "" || value === null || value === undefined ? 0 : value;
+    });
+
+    console.log("Sending calculation request:", {
+      product: selectedProduct.Products,
+      productCode: selectedProduct["Product Code"],
+      values: values,
     });
 
     try {
@@ -156,10 +189,17 @@ function App() {
           }),
         }
       );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const result = await response.json();
+      console.log("Calculation result:", result);
       setCalculation(result);
     } catch (error) {
       console.error("Error calculating price:", error);
+      setCalculationError("Failed to calculate price. Please try again.");
     } finally {
       setCalculating(false);
     }
@@ -170,7 +210,19 @@ function App() {
     setFields([]);
     setFormValues({});
     setCalculation(null);
+    setCalculationError("");
   };
+
+  // Show loading screen on initial load
+  if (initialLoading) {
+    return (
+      <>
+        <Logo />
+        <LoadingScreen />
+        <Watermark text="HRLabs" />
+      </>
+    );
+  }
 
   // Login Screen
   if (!isAuthenticated) {
@@ -362,12 +414,25 @@ function App() {
                   ))}
                 </div>
 
+                {calculationError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
+                    {calculationError}
+                  </div>
+                )}
+
                 <button
                   onClick={handleCalculatePrice}
                   disabled={calculating}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {calculating ? "Calculating..." : "Calculate Price"}
+                  {calculating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Calculating...
+                    </>
+                  ) : (
+                    "Calculate Price"
+                  )}
                 </button>
               </>
             )}
