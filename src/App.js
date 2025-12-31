@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import logo from "./images/MLI logo.jpeg";
-import Watermark from "./components/Watermark/Watermark";
-
-// Logo Component
+// Mock components for demonstration
 const Logo = () => (
   <div
     style={{
@@ -14,17 +12,38 @@ const Logo = () => (
   >
     <img
       src={logo}
-      alt="MLI Logo"
+      alt="MLI"
       style={{
-        height: "100px",
-        width: "auto",
-        objectFit: "contain",
+        height: "80px",
+        width: "80px",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        borderRadius: "12px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "white",
+        fontWeight: "bold",
+        fontSize: "24px",
       }}
-    />
+    ></img>
   </div>
 );
 
-// Loading Screen Component
+const Watermark = ({ text }) => (
+  <div
+    style={{
+      position: "fixed",
+      bottom: "20px",
+      right: "20px",
+      opacity: 0.3,
+      fontSize: "12px",
+      color: "#666",
+    }}
+  >
+    {text}
+  </div>
+);
+
 const LoadingScreen = () => (
   <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
     <div className="text-center">
@@ -37,10 +56,45 @@ const LoadingScreen = () => (
   </div>
 );
 
+// Logout Button Component
+const LogoutButton = ({ onLogout }) => (
+  <div
+    style={{
+      position: "fixed",
+      top: "20px",
+      right: "20px",
+      zIndex: 1000,
+    }}
+  >
+    <button
+      onClick={onLogout}
+      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200 flex items-center gap-2 shadow-md"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+      </svg>
+      Logout
+    </button>
+  </div>
+);
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -61,11 +115,21 @@ function App() {
     { email: "vijay@hrlabs.in", password: "password123" },
   ];
 
-  // Simulate initial loading
+  // Check for saved login on component mount
   useEffect(() => {
+    const savedEmail = localStorage.getItem("userEmail");
+    const savedAuth = localStorage.getItem("isAuthenticated");
+
+    if (savedAuth === "true" && savedEmail) {
+      setEmail(savedEmail);
+      setIsAuthenticated(true);
+      fetchProducts();
+    }
+
     const timer = setTimeout(() => {
       setInitialLoading(false);
     }, 1500);
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -89,12 +153,39 @@ function App() {
 
       if (isValid) {
         setIsAuthenticated(true);
+
+        // Save to localStorage if remember me is checked
+        if (rememberMe) {
+          localStorage.setItem("userEmail", email);
+          localStorage.setItem("isAuthenticated", "true");
+        } else {
+          // Clear localStorage if remember me is not checked
+          localStorage.removeItem("userEmail");
+          localStorage.removeItem("isAuthenticated");
+        }
+
         fetchProducts();
       } else {
         setLoginError("Invalid email or password");
       }
       setIsLoading(false);
     }, 500);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setEmail("");
+    setPassword("");
+    setRememberMe(false);
+    setSelectedProduct(null);
+    setProducts([]);
+    setFields([]);
+    setFormValues({});
+    setCalculation(null);
+
+    // Clear localStorage
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("isAuthenticated");
   };
 
   const handleKeyPress = (e) => {
@@ -158,7 +249,6 @@ function App() {
   };
 
   const handleCalculatePrice = async () => {
-    console.log("Calculate button clicked");
     setCalculating(true);
     setCalculationError("");
     setCalculation(null);
@@ -166,15 +256,8 @@ function App() {
     const values = {};
     fields.forEach((field) => {
       const value = formValues[field.field];
-      // Pass "0" as string for empty values
       values[field.field] =
         value === "" || value === null || value === undefined ? "0" : value;
-    });
-
-    console.log("Sending calculation request:", {
-      product: selectedProduct.Products,
-      productCode: selectedProduct["Product Code"],
-      values: values,
     });
 
     try {
@@ -196,7 +279,6 @@ function App() {
       }
 
       const result = await response.json();
-      console.log("Calculation result:", result);
       setCalculation(result);
     } catch (error) {
       console.error("Error calculating price:", error);
@@ -276,6 +358,22 @@ function App() {
                 />
               </div>
 
+              <div className="flex items-center">
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                />
+                <label
+                  htmlFor="rememberMe"
+                  className="ml-2 block text-sm text-gray-700 cursor-pointer"
+                >
+                  Remember me
+                </label>
+              </div>
+
               {loginError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                   {loginError}
@@ -302,6 +400,7 @@ function App() {
     return (
       <>
         <Logo />
+        <LogoutButton onLogout={handleLogout} />
         <div className="min-h-screen bg-gray-50 p-8">
           <div className="max-w-6xl mx-auto" style={{ marginTop: "60px" }}>
             <div className="mb-8">
@@ -348,6 +447,7 @@ function App() {
   return (
     <>
       <Logo />
+      <LogoutButton onLogout={handleLogout} />
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-4xl mx-auto" style={{ marginTop: "60px" }}>
           <button
