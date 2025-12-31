@@ -166,8 +166,9 @@ function App() {
     const values = {};
     fields.forEach((field) => {
       const value = formValues[field.field];
+      // Pass "0" as string for empty values
       values[field.field] =
-        value === "" || value === null || value === undefined ? 0 : value;
+        value === "" || value === null || value === undefined ? "0" : value;
     });
 
     console.log("Sending calculation request:", {
@@ -401,7 +402,11 @@ function App() {
                         </select>
                       ) : (
                         <input
-                          type="number"
+                          type={
+                            field.field.toLowerCase() === "misc"
+                              ? "text"
+                              : "number"
+                          }
                           value={formValues[field.field] || ""}
                           onChange={(e) =>
                             handleFieldChange(field.field, e.target.value)
