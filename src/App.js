@@ -1,5 +1,28 @@
 import { useState, useRef, useEffect } from "react";
-import "./App.css";
+import logo from "./images/MLI logo.jpeg";
+import Watermark from "./components/Watermark/Watermark";
+
+// Logo Component
+const Logo = () => (
+  <div
+    style={{
+      position: "fixed",
+      top: "20px",
+      left: "20px",
+      zIndex: 1000,
+    }}
+  >
+    <img
+      src={logo}
+      alt="MLI Logo"
+      style={{
+        height: "100px",
+        width: "auto",
+        objectFit: "contain",
+      }}
+    />
+  </div>
+);
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -91,7 +114,6 @@ function App() {
       const result = await response.json();
       setFields(result.data || []);
 
-      // Initialize form values
       const initialValues = {};
       result.data.forEach((field) => {
         initialValues[field.field] = "";
@@ -114,12 +136,9 @@ function App() {
   const handleCalculatePrice = async () => {
     setCalculating(true);
 
-    // Prepare values object with defaults for empty fields
     const values = {};
     fields.forEach((field) => {
       const value = formValues[field.field];
-      // If field has dropdown options and value is set, use it
-      // If field is empty or not set, use 0 as default
       values[field.field] =
         value === "" || value === null || value === undefined ? 0 : value;
     });
@@ -156,233 +175,247 @@ function App() {
   // Login Screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              Welcome Back
-            </h1>
-            <p className="text-gray-600">Sign in to your account</p>
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
-                placeholder="you@example.com"
-              />
+      <>
+        <Logo />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                Welcome Back
+              </h1>
+              <p className="text-gray-600">Sign in to your account</p>
             </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {loginError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {loginError}
+            <div className="space-y-6">
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Email Address
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                  placeholder="you@example.com"
+                />
               </div>
-            )}
 
-            <button
-              onClick={handleLogin}
-              disabled={isLoading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? "Signing in..." : "Sign In"}
-            </button>
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              {loginError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {loginError}
+                </div>
+              )}
+
+              <button
+                onClick={handleLogin}
+                disabled={isLoading}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? "Signing in..." : "Sign In"}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+        <Watermark text="HRLabs" />
+      </>
     );
   }
 
   // Products Selection Screen
   if (!selectedProduct) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">
-              Select a Product
-            </h1>
-            <p className="text-gray-600">Choose a product to get a quotation</p>
-          </div>
+      <>
+        <Logo />
+        <div className="min-h-screen bg-gray-50 p-8">
+          <div className="max-w-6xl mx-auto" style={{ marginTop: "60px" }}>
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold text-gray-800 mb-2">
+                Select a Product
+              </h1>
+              <p className="text-gray-600">
+                Choose a product to get a quotation
+              </p>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((product) => (
-              <div
-                key={product.row_number}
-                className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border-2 border-transparent hover:border-indigo-500"
-                onClick={() => handleProductSelect(product)}
-              >
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-gray-800">
-                      {product.Products}
-                    </h3>
-                    <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-semibold">
-                      {product["Product Code"]}
-                    </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map((product) => (
+                <div
+                  key={product.row_number}
+                  className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border-2 border-transparent hover:border-indigo-500"
+                  onClick={() => handleProductSelect(product)}
+                >
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-xl font-bold text-gray-800">
+                        {product.Products}
+                      </h3>
+                      <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-semibold">
+                        {product["Product Code"]}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 mb-4">{product.Description}</p>
+                    <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg transition">
+                      Select Product
+                    </button>
                   </div>
-                  <p className="text-gray-600 mb-4">{product.Description}</p>
-                  <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg transition">
-                    Select Product
-                  </button>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+        <Watermark text="HRLabs" />
+      </>
     );
   }
 
   // Product Details & Calculation Screen
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <button
-          onClick={handleBackToProducts}
-          className="mb-6 text-indigo-600 hover:text-indigo-700 flex items-center gap-2"
-        >
-          ← Back to Products
-        </button>
+    <>
+      <Logo />
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-4xl mx-auto" style={{ marginTop: "60px" }}>
+          <button
+            onClick={handleBackToProducts}
+            className="mb-6 text-indigo-600 hover:text-indigo-700 flex items-center gap-2"
+          >
+            ← Back to Products
+          </button>
 
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-800">
-                {selectedProduct.Products}
-              </h2>
-              <p className="text-gray-600 mt-1">
-                {selectedProduct.Description}
-              </p>
+          <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-800">
+                  {selectedProduct.Products}
+                </h2>
+                <p className="text-gray-600 mt-1">
+                  {selectedProduct.Description}
+                </p>
+              </div>
+              <span className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full text-lg font-semibold">
+                {selectedProduct["Product Code"]}
+              </span>
             </div>
-            <span className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full text-lg font-semibold">
-              {selectedProduct["Product Code"]}
-            </span>
+
+            {loadingFields ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+                <p className="text-gray-600 mt-4">Loading fields...</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {fields.map((field, index) => (
+                    <div key={index}>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {field.field}
+                      </label>
+                      {field.value && field.value.length > 0 ? (
+                        <select
+                          value={formValues[field.field] || ""}
+                          onChange={(e) =>
+                            handleFieldChange(field.field, e.target.value)
+                          }
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                        >
+                          <option value="">Select {field.field}</option>
+                          {field.value.map((option, optIndex) => (
+                            <option key={optIndex} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="number"
+                          value={formValues[field.field] || ""}
+                          onChange={(e) =>
+                            handleFieldChange(field.field, e.target.value)
+                          }
+                          placeholder={`Enter ${field.field}`}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleCalculatePrice}
+                  disabled={calculating}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {calculating ? "Calculating..." : "Calculate Price"}
+                </button>
+              </>
+            )}
           </div>
 
-          {loadingFields ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="text-gray-600 mt-4">Loading fields...</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                {fields.map((field, index) => (
-                  <div key={index}>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {field.field}
-                    </label>
-                    {field.value && field.value.length > 0 ? (
-                      <select
-                        value={formValues[field.field] || ""}
-                        onChange={(e) =>
-                          handleFieldChange(field.field, e.target.value)
-                        }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                      >
-                        <option value="">Select {field.field}</option>
-                        {field.value.map((option, optIndex) => (
-                          <option key={optIndex} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="number"
-                        value={formValues[field.field] || ""}
-                        onChange={(e) =>
-                          handleFieldChange(field.field, e.target.value)
-                        }
-                        placeholder={`Enter ${field.field}`}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                      />
-                    )}
-                  </div>
-                ))}
+          {calculation && (
+            <div className="bg-white rounded-xl shadow-lg p-8" ref={resultRef}>
+              <h3 className="text-2xl font-bold text-gray-800 mb-6">
+                Quotation Result
+              </h3>
+
+              <div className="bg-indigo-50 border-2 border-indigo-200 rounded-lg p-6 mb-6">
+                <div className="flex justify-between items-center">
+                  <span className="text-xl font-semibold text-gray-700">
+                    Net Total
+                  </span>
+                  <span className="text-3xl font-bold text-indigo-600">
+                    ₹{calculation["Net Total"]?.toFixed(2)}
+                  </span>
+                </div>
               </div>
 
-              <button
-                onClick={handleCalculatePrice}
-                disabled={calculating}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {calculating ? "Calculating..." : "Calculate Price"}
-              </button>
-            </>
+              <div className="grid grid-cols-2 gap-4">
+                {Object.entries(calculation).map(([key, value]) => {
+                  if (
+                    key === "Net Total" ||
+                    key === "Fields" ||
+                    key === "values" ||
+                    key === "ID" ||
+                    key === "row_number"
+                  )
+                    return null;
+                  return (
+                    <div key={key} className="border-b border-gray-200 py-2">
+                      <span className="text-sm text-gray-600">{key}</span>
+                      <p className="font-semibold text-gray-800">
+                        {value || "0"}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
-
-        {calculation && (
-          <div className="bg-white rounded-xl shadow-lg p-8" ref={resultRef}>
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">
-              Quotation Result
-            </h3>
-
-            <div className="bg-indigo-50 border-2 border-indigo-200 rounded-lg p-6 mb-6">
-              <div className="flex justify-between items-center">
-                <span className="text-xl font-semibold text-gray-700">
-                  Net Total
-                </span>
-                <span className="text-3xl font-bold text-indigo-600">
-                  ₹{calculation["Net Total"]?.toFixed(2)}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              {Object.entries(calculation).map(([key, value]) => {
-                if (
-                  key === "Net Total" ||
-                  key === "Fields" ||
-                  key === "values" ||
-                  key === "ID" ||
-                  key === "row_number"
-                )
-                  return null;
-                return (
-                  <div key={key} className="border-b border-gray-200 py-2">
-                    <span className="text-sm text-gray-600">{key}</span>
-                    <p className="font-semibold text-gray-800">
-                      {value || "0"}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
-    </div>
+      <Watermark text="HRLabs" />
+    </>
   );
 }
 

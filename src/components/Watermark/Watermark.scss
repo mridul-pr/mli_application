@@ -1,0 +1,19 @@
+/* src/components/Watermark/Watermark.scss */
+.watermark {
+  position: fixed;
+  bottom: 30px;
+  right: 100px;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0.4;
+
+  .watermark-prefix {
+    font-size: 1rem;
+  }
+
+  span {
+    font-size: 1rem;
+    color: black; // Set to white initially
+    user-select: none;
+  }
+}
