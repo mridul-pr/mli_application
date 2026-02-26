@@ -148,7 +148,7 @@ function App() {
 
     setTimeout(() => {
       const isValid = validCredentials.some(
-        (cred) => cred.email === email && cred.password === password
+        (cred) => cred.email === email && cred.password === password,
       );
 
       if (isValid) {
@@ -194,10 +194,11 @@ function App() {
     }
   };
 
+  // ── UPDATED: new product list endpoint ──
   const fetchProducts = async () => {
     try {
       const response = await fetch(
-        "https://n8n.automate.ourdept.com/webhook/products/list"
+        "https://n8n.automate.ourdept.com/webhook/mli/banglore/products/list",
       );
       const result = await response.json();
       setProducts(result.data || []);
@@ -206,6 +207,7 @@ function App() {
     }
   };
 
+  // ── UPDATED: new fields endpoint with sheetId in body ──
   const handleProductSelect = async (product) => {
     setSelectedProduct(product);
     setLoadingFields(true);
@@ -216,21 +218,22 @@ function App() {
 
     try {
       const response = await fetch(
-        "https://n8n.automate.ourdept.com/webhook/product/fields",
+        "https://n8n.automate.ourdept.com/webhook/mli/banglore/product/fields",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             product: product.Products,
             productCode: product["Product Code"],
+            sheetId: product["Sheet ID"] ?? product["sheetId"] ?? "",
           }),
-        }
+        },
       );
       const result = await response.json();
       setFields(result.data || []);
 
       const initialValues = {};
-      result.data.forEach((field) => {
+      (result.data || []).forEach((field) => {
         initialValues[field.field] = "";
       });
       setFormValues(initialValues);
@@ -248,6 +251,7 @@ function App() {
     }));
   };
 
+  // ── UPDATED: new calculate endpoint with sheetID in body ──
   const handleCalculatePrice = async () => {
     setCalculating(true);
     setCalculationError("");
@@ -262,16 +266,18 @@ function App() {
 
     try {
       const response = await fetch(
-        "https://n8n.automate.ourdept.com/webhook/quote/calculate/price",
+        "https://n8n.automate.ourdept.com/webhook-test/mli/banglore/product/price",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             product: selectedProduct.Products,
             productCode: selectedProduct["Product Code"],
+            sheetID:
+              selectedProduct["Sheet ID"] ?? selectedProduct["sheetId"] ?? "",
             values: values,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
