@@ -199,9 +199,13 @@ function App() {
     try {
       const response = await fetch(
         "https://n8n.automate.ourdept.com/webhook/mli/banglore/products/list",
+        { cache: "no-store" },
       );
+
       const result = await response.json();
-      setProducts(result.data || []);
+
+      // FIX: Access first element → then data
+      setProducts(result[0]?.data || []);
     } catch (error) {
       console.error("Error fetching products:", error);
     }
@@ -223,9 +227,9 @@ function App() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            product: product.Products,
-            productCode: product["Product Code"],
-            sheetId: product["Sheet ID"] ?? product["sheetId"] ?? "",
+            product: product["Products Name"],
+            productCode: product["Products Code"],
+            sheetId: product["Sheet ID"] ?? "",
           }),
         },
       );
