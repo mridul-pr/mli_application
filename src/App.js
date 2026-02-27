@@ -275,10 +275,9 @@ function App() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            product: selectedProduct.Products,
-            productCode: selectedProduct["Product Code"],
-            sheetID:
-              selectedProduct["Sheet ID"] ?? selectedProduct["sheetId"] ?? "",
+            product: selectedProduct["Products Name"],
+            productCode: selectedProduct["Products Code"],
+            sheetID: selectedProduct["Sheet ID"] ?? "",
             values: values,
           }),
         },
@@ -432,10 +431,10 @@ function App() {
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xl font-bold text-gray-800">
-                        {product.Products}
+                        {product["Products Name"]}{" "}
                       </h3>
                       <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-semibold">
-                        {product["Product Code"]}
+                        {product["Products Code"]}{" "}
                       </span>
                     </div>
                     <p className="text-gray-600 mb-4">{product.Description}</p>
@@ -471,14 +470,14 @@ function App() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-3xl font-bold text-gray-800">
-                  {selectedProduct.Products}
+                  {selectedProduct["Products Name"]}{" "}
                 </h2>
                 <p className="text-gray-600 mt-1">
                   {selectedProduct.Description}
                 </p>
               </div>
               <span className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full text-lg font-semibold">
-                {selectedProduct["Product Code"]}
+                {selectedProduct["Products Code"]}{" "}
               </span>
             </div>
 
