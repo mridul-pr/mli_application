@@ -32,26 +32,7 @@ const getCredsForBranch = (code) => {
 };
 // ────────────────────────────────────────────────────────────────────────────
 
-// Fallback if env var missing
-const FALLBACK_BRANCHES = [
-  { label: "Bangalore", city: "Bengaluru", code: "BLR" },
-];
-
-const FALLBACK_CREDS = {
-  BLR: {
-    usernames: ["blrsc1", "blrsc2", "blrsc3", "blrsc4", "blrsc5"],
-    password: "Mli@123",
-  },
-};
-
-const BRANCHES =
-  parseBranches().length > 0 ? parseBranches() : FALLBACK_BRANCHES;
-
-const getCredsForBranchSafe = (code) => {
-  const fromEnv = getCredsForBranch(code);
-  if (fromEnv.usernames.length > 0) return fromEnv;
-  return FALLBACK_CREDS[code] || { usernames: [], password: "" };
-};
+const BRANCHES = parseBranches();
 
 // ── UI Components ─────────────────────────────────────────────────────────
 const Logo = () => (
@@ -341,11 +322,20 @@ function App() {
   const [calculationError, setCalculationError] = useState("");
   const resultRef = useRef(null);
 
-  // On mount: always start at branch selection screen.
-  // Clear any stale localStorage so we never skip branch selection.
+  // Check for saved login on mount
   useEffect(() => {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("branchCode");
+    const savedAuth = localStorage.getItem("isAuthenticated");
+    const savedBranchCode = localStorage.getItem("branchCode");
+
+    if (savedAuth === "true" && savedBranchCode) {
+      const branch = BRANCHES.find((b) => b.code === savedBranchCode);
+      if (branch) {
+        setSelectedBranch(branch);
+        setStep("app");
+        fetchProducts();
+      }
+    }
+
     const timer = setTimeout(() => setInitialLoading(false), 1500);
     return () => clearTimeout(timer);
   }, []);
@@ -369,7 +359,7 @@ function App() {
     setIsLoading(true);
 
     setTimeout(() => {
-      const { usernames, password: validPassword } = getCredsForBranchSafe(
+      const { usernames, password: validPassword } = getCredsForBranch(
         selectedBranch.code,
       );
       const isValid =
@@ -377,6 +367,13 @@ function App() {
 
       if (isValid) {
         setStep("app");
+        if (rememberMe) {
+          localStorage.setItem("isAuthenticated", "true");
+          localStorage.setItem("branchCode", selectedBranch.code);
+        } else {
+          localStorage.removeItem("isAuthenticated");
+          localStorage.removeItem("branchCode");
+        }
         fetchProducts();
       } else {
         setLoginError("Invalid username or password");
@@ -574,6 +571,22 @@ function App() {
                   placeholder="••••••••"
                   autoComplete="current-password"
                 />
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                />
+                <label
+                  htmlFor="rememberMe"
+                  className="ml-2 block text-sm text-gray-700 cursor-pointer"
+                >
+                  Remember me
+                </label>
               </div>
 
               {loginError && (
