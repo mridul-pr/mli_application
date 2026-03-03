@@ -1,31 +1,73 @@
 import { useState, useRef, useEffect } from "react";
 import logo from "./images/MLI logo.jpeg";
-// Mock components for demonstration
+
+// ─── ENV helpers ────────────────────────────────────────────────────────────
+// Parse branches from VITE_BRANCHES env var
+// Format: "Label|City|Code,Label2|City2|Code2"
+const parseBranches = () => {
+  const raw = import.meta.env.VITE_BRANCHES || "";
+  return raw
+    .split(",")
+    .map((b) => b.trim())
+    .filter(Boolean)
+    .map((b) => {
+      const [label, city, code] = b.split("|");
+      return { label: label?.trim(), city: city?.trim(), code: code?.trim() };
+    });
+};
+
+// Parse credentials for a given branch code from VITE_CREDS_<CODE>
+// Format: "user1,user2,user3|sharedPassword"
+const getCredsForBranch = (code) => {
+  const key = `VITE_CREDS_${code}`;
+  const raw = import.meta.env[key] || "";
+  const [usersPart, password] = raw.split("|");
+  const usernames = usersPart
+    ? usersPart
+        .split(",")
+        .map((u) => u.trim())
+        .filter(Boolean)
+    : [];
+  return { usernames, password: password?.trim() };
+};
+// ────────────────────────────────────────────────────────────────────────────
+
+// Fallback if env var missing
+const FALLBACK_BRANCHES = [
+  { label: "Bangalore", city: "Bengaluru", code: "BLR" },
+];
+
+const FALLBACK_CREDS = {
+  BLR: {
+    usernames: ["blrsc1", "blrsc2", "blrsc3", "blrsc4", "blrsc5"],
+    password: "Mli@123",
+  },
+};
+
+const BRANCHES =
+  parseBranches().length > 0 ? parseBranches() : FALLBACK_BRANCHES;
+
+const getCredsForBranchSafe = (code) => {
+  const fromEnv = getCredsForBranch(code);
+  if (fromEnv.usernames.length > 0) return fromEnv;
+  return FALLBACK_CREDS[code] || { usernames: [], password: "" };
+};
+
+// ── UI Components ─────────────────────────────────────────────────────────
 const Logo = () => (
-  <div
-    style={{
-      position: "fixed",
-      top: "20px",
-      left: "20px",
-      zIndex: 1000,
-    }}
-  >
+  <div style={{ position: "fixed", top: "20px", left: "20px", zIndex: 1000 }}>
     <img
       src={logo}
       alt="MLI"
       style={{
         height: "80px",
         width: "80px",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
         borderRadius: "12px",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: "white",
-        fontWeight: "bold",
-        fontSize: "24px",
       }}
-    ></img>
+    />
   </div>
 );
 
@@ -47,7 +89,7 @@ const Watermark = ({ text }) => (
 const LoadingScreen = () => (
   <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
     <div className="text-center">
-      <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-indigo-600 mx-auto mb-4"></div>
+      <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-indigo-600 mx-auto mb-4" />
       <h2 className="text-2xl font-bold text-gray-800 mb-2">Loading...</h2>
       <p className="text-gray-600">
         Please wait while we prepare your experience
@@ -56,16 +98,8 @@ const LoadingScreen = () => (
   </div>
 );
 
-// Logout Button Component
 const LogoutButton = ({ onLogout }) => (
-  <div
-    style={{
-      position: "fixed",
-      top: "20px",
-      right: "20px",
-      zIndex: 1000,
-    }}
-  >
+  <div style={{ position: "fixed", top: "20px", right: "20px", zIndex: 1000 }}>
     <button
       onClick={onLogout}
       className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200 flex items-center gap-2 shadow-md"
@@ -81,17 +115,214 @@ const LogoutButton = ({ onLogout }) => (
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-        <polyline points="16 17 21 12 16 7"></polyline>
-        <line x1="21" y1="12" x2="9" y2="12"></line>
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <polyline points="16 17 21 12 16 7" />
+        <line x1="21" y1="12" x2="9" y2="12" />
       </svg>
       Logout
     </button>
   </div>
 );
 
+// ── Branch city accent colors (cycles if more branches added) ───────────────
+const BRANCH_ACCENTS = [
+  {
+    bg: "from-orange-400 to-rose-500",
+    light: "#fff7ed",
+    border: "#fb923c",
+    text: "#c2410c",
+    icon: "#ea580c",
+  },
+  {
+    bg: "from-cyan-500 to-blue-600",
+    light: "#ecfeff",
+    border: "#22d3ee",
+    text: "#0e7490",
+    icon: "#0891b2",
+  },
+  {
+    bg: "from-emerald-400 to-teal-600",
+    light: "#ecfdf5",
+    border: "#34d399",
+    text: "#065f46",
+    icon: "#059669",
+  },
+  {
+    bg: "from-violet-500 to-purple-700",
+    light: "#f5f3ff",
+    border: "#a78bfa",
+    text: "#5b21b6",
+    icon: "#7c3aed",
+  },
+];
+
+// ── Branch Selection Screen ────────────────────────────────────────────────
+const BranchSelectionScreen = ({ onSelectBranch }) => (
+  <>
+    <Logo />
+    <style>{`
+      @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500&display=swap');
+      .branch-card {
+        font-family: 'Sora', sans-serif;
+        cursor: pointer;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 2px solid transparent;
+        background: white;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+        transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease, border-color 0.18s ease;
+        position: relative;
+      }
+      .branch-card:hover {
+        transform: translateY(-6px) scale(1.02);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.13);
+      }
+      .branch-card .card-header {
+        padding: 32px 28px 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+      }
+      .branch-card .card-footer {
+        padding: 16px 28px;
+        border-top: 1px solid rgba(0,0,0,0.06);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      .branch-icon-wrap {
+        width: 52px; height: 52px;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .branch-label { font-size: 22px; font-weight: 800; color: #1e1b4b; line-height: 1.2; }
+      .branch-city  { font-size: 13px; font-weight: 500; color: #6b7280; margin-top: 2px; font-family: 'DM Sans', sans-serif; }
+      .code-badge {
+        font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+        padding: 3px 10px; border-radius: 999px;
+        text-transform: uppercase;
+      }
+      .branch-screen-bg {
+        min-height: 100vh;
+        background: #f8f7ff;
+        background-image:
+          radial-gradient(ellipse at 10% 20%, rgba(99,102,241,0.08) 0%, transparent 60%),
+          radial-gradient(ellipse at 90% 80%, rgba(251,113,133,0.07) 0%, transparent 60%);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 40px 16px;
+        font-family: 'Sora', sans-serif;
+      }
+      .branch-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
+        width: 100%;
+        max-width: 800px;
+      }
+      .screen-title { font-size: 36px; font-weight: 800; color: #1e1b4b; text-align: center; margin-bottom: 6px; }
+      .screen-sub   { font-size: 15px; color: #6b7280; text-align: center; margin-bottom: 40px; font-family: 'DM Sans', sans-serif; }
+      .arrow-circle {
+        width: 28px; height: 28px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+      }
+    `}</style>
+
+    <div className="branch-screen-bg">
+      <p className="screen-title">Choose Your Branch</p>
+      <p className="screen-sub">Select the branch you're signing into</p>
+
+      <div className="branch-grid">
+        {BRANCHES.map((branch, i) => {
+          const accent = BRANCH_ACCENTS[i % BRANCH_ACCENTS.length];
+          return (
+            <div
+              key={branch.code}
+              className="branch-card"
+              style={{ borderColor: "transparent" }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.borderColor = accent.border)
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.borderColor = "transparent")
+              }
+              onClick={() => onSelectBranch(branch)}
+            >
+              {/* coloured top strip */}
+              <div
+                className={`bg-gradient-to-r ${accent.bg}`}
+                style={{ height: 6 }}
+              />
+
+              <div className="card-header">
+                <div
+                  className="branch-icon-wrap"
+                  style={{ background: accent.light }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="26"
+                    height="26"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={accent.icon}
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="branch-label">{branch.label}</div>
+                  <div className="branch-city">{branch.city}</div>
+                </div>
+              </div>
+
+              <div className="card-footer" style={{ color: accent.text }}>
+                <span
+                  className="code-badge"
+                  style={{ background: accent.light, color: accent.text }}
+                >
+                  {branch.code}
+                </span>
+                <div
+                  className="arrow-circle"
+                  style={{ background: accent.light }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={accent.icon}
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+    <Watermark text="HRLabs" />
+  </>
+);
+
+// ── Main App ───────────────────────────────────────────────────────────────
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [step, setStep] = useState("branch"); // "branch" | "login" | "app"
+  const [selectedBranch, setSelectedBranch] = useState(null);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -110,70 +341,53 @@ function App() {
   const [calculationError, setCalculationError] = useState("");
   const resultRef = useRef(null);
 
-  const validCredentials = [
-    { email: "raksha@hrlabs.in", password: "password123" },
-    { email: "vijay@hrlabs.in", password: "password123" },
-  ];
-
-  // Check for saved login on component mount
+  // On mount: always start at branch selection screen.
+  // Clear any stale localStorage so we never skip branch selection.
   useEffect(() => {
-    const savedEmail = localStorage.getItem("userEmail");
-    const savedAuth = localStorage.getItem("isAuthenticated");
-
-    if (savedAuth === "true" && savedEmail) {
-      setEmail(savedEmail);
-      setIsAuthenticated(true);
-      fetchProducts();
-    }
-
-    const timer = setTimeout(() => {
-      setInitialLoading(false);
-    }, 1500);
-
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("branchCode");
+    const timer = setTimeout(() => setInitialLoading(false), 1500);
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
     if (calculation && resultRef.current) {
-      resultRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      resultRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [calculation]);
+
+  const handleBranchSelect = (branch) => {
+    setSelectedBranch(branch);
+    setLoginError("");
+    setEmail("");
+    setPassword("");
+    setStep("login");
+  };
 
   const handleLogin = () => {
     setLoginError("");
     setIsLoading(true);
 
     setTimeout(() => {
-      const isValid = validCredentials.some(
-        (cred) => cred.email === email && cred.password === password,
+      const { usernames, password: validPassword } = getCredsForBranchSafe(
+        selectedBranch.code,
       );
+      const isValid =
+        usernames.includes(email.trim()) && password === validPassword;
 
       if (isValid) {
-        setIsAuthenticated(true);
-
-        // Save to localStorage if remember me is checked
-        if (rememberMe) {
-          localStorage.setItem("userEmail", email);
-          localStorage.setItem("isAuthenticated", "true");
-        } else {
-          // Clear localStorage if remember me is not checked
-          localStorage.removeItem("userEmail");
-          localStorage.removeItem("isAuthenticated");
-        }
-
+        setStep("app");
         fetchProducts();
       } else {
-        setLoginError("Invalid email or password");
+        setLoginError("Invalid username or password");
       }
       setIsLoading(false);
     }, 500);
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    setStep("branch");
+    setSelectedBranch(null);
     setEmail("");
     setPassword("");
     setRememberMe(false);
@@ -182,36 +396,27 @@ function App() {
     setFields([]);
     setFormValues({});
     setCalculation(null);
-
-    // Clear localStorage
-    localStorage.removeItem("userEmail");
     localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("branchCode");
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleLogin();
-    }
+    if (e.key === "Enter") handleLogin();
   };
 
-  // ── UPDATED: new product list endpoint ──
   const fetchProducts = async () => {
     try {
       const response = await fetch(
         "https://n8n.automate.ourdept.com/webhook/mli/banglore/products/list",
         { cache: "no-store" },
       );
-
       const result = await response.json();
-
-      // FIX: Access first element → then data
       setProducts(result[0]?.data || []);
     } catch (error) {
       console.error("Error fetching products:", error);
     }
   };
 
-  // ── UPDATED: new fields endpoint with sheetId in body ──
   const handleProductSelect = async (product) => {
     setSelectedProduct(product);
     setLoadingFields(true);
@@ -235,7 +440,6 @@ function App() {
       );
       const result = await response.json();
       setFields(result.data || []);
-
       const initialValues = {};
       (result.data || []).forEach((field) => {
         initialValues[field.field] = "";
@@ -249,13 +453,9 @@ function App() {
   };
 
   const handleFieldChange = (fieldName, value) => {
-    setFormValues((prev) => ({
-      ...prev,
-      [fieldName]: value,
-    }));
+    setFormValues((prev) => ({ ...prev, [fieldName]: value }));
   };
 
-  // ── UPDATED: new calculate endpoint with sheetID in body ──
   const handleCalculatePrice = async () => {
     setCalculating(true);
     setCalculationError("");
@@ -283,10 +483,8 @@ function App() {
         },
       );
 
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const result = await response.json();
       setCalculation(result);
     } catch (error) {
@@ -305,7 +503,8 @@ function App() {
     setCalculationError("");
   };
 
-  // Show loading screen on initial load
+  // ── Render ───────────────────────────────────────────────────────────────
+
   if (initialLoading) {
     return (
       <>
@@ -316,13 +515,29 @@ function App() {
     );
   }
 
-  // Login Screen
-  if (!isAuthenticated) {
+  if (step === "branch") {
+    return <BranchSelectionScreen onSelectBranch={handleBranchSelect} />;
+  }
+
+  if (step === "login") {
     return (
       <>
         <Logo />
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+            {/* Branch badge */}
+            <div className="flex items-center justify-between mb-6">
+              <button
+                onClick={() => setStep("branch")}
+                className="text-indigo-600 hover:text-indigo-700 flex items-center gap-1 text-sm"
+              >
+                ← Change Branch
+              </button>
+              <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-semibold">
+                📍 {selectedBranch?.label}
+              </span>
+            </div>
+
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-gray-800 mb-2">
                 Welcome Back
@@ -332,55 +547,33 @@ function App() {
 
             <div className="space-y-6">
               <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Email Address
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Username
                 </label>
                 <input
-                  id="email"
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyPress={handleKeyPress}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
-                  placeholder="you@example.com"
+                  placeholder="e.g. blrsc1"
+                  autoComplete="username"
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Password
                 </label>
                 <input
-                  id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyPress={handleKeyPress}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
                   placeholder="••••••••"
+                  autoComplete="current-password"
                 />
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  id="rememberMe"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
-                />
-                <label
-                  htmlFor="rememberMe"
-                  className="ml-2 block text-sm text-gray-700 cursor-pointer"
-                >
-                  Remember me
-                </label>
               </div>
 
               {loginError && (
@@ -404,7 +597,7 @@ function App() {
     );
   }
 
-  // Products Selection Screen
+  // ── App (Products / Calculation) ─────────────────────────────────────────
   if (!selectedProduct) {
     return (
       <>
@@ -412,13 +605,18 @@ function App() {
         <LogoutButton onLogout={handleLogout} />
         <div className="min-h-screen bg-gray-50 p-8">
           <div className="max-w-6xl mx-auto" style={{ marginTop: "60px" }}>
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold text-gray-800 mb-2">
-                Select a Product
-              </h1>
-              <p className="text-gray-600">
-                Choose a product to get a quotation
-              </p>
+            <div className="mb-8 flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-bold text-gray-800 mb-2">
+                  Select a Product
+                </h1>
+                <p className="text-gray-600">
+                  Choose a product to get a quotation
+                </p>
+              </div>
+              <span className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full font-semibold">
+                📍 {selectedBranch?.label}
+              </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -431,10 +629,10 @@ function App() {
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xl font-bold text-gray-800">
-                        {product["Products Name"]}{" "}
+                        {product["Products Name"]}
                       </h3>
                       <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-semibold">
-                        {product["Products Code"]}{" "}
+                        {product["Products Code"]}
                       </span>
                     </div>
                     <p className="text-gray-600 mb-4">{product.Description}</p>
@@ -452,7 +650,6 @@ function App() {
     );
   }
 
-  // Product Details & Calculation Screen
   return (
     <>
       <Logo />
@@ -470,20 +667,20 @@ function App() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-3xl font-bold text-gray-800">
-                  {selectedProduct["Products Name"]}{" "}
+                  {selectedProduct["Products Name"]}
                 </h2>
                 <p className="text-gray-600 mt-1">
                   {selectedProduct.Description}
                 </p>
               </div>
               <span className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full text-lg font-semibold">
-                {selectedProduct["Products Code"]}{" "}
+                {selectedProduct["Products Code"]}
               </span>
             </div>
 
             {loadingFields ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto" />
                 <p className="text-gray-600 mt-4">Loading fields...</p>
               </div>
             ) : (
@@ -541,7 +738,7 @@ function App() {
                 >
                   {calculating ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
                       Calculating...
                     </>
                   ) : (
@@ -557,7 +754,6 @@ function App() {
               <h3 className="text-2xl font-bold text-gray-800 mb-6">
                 Quotation Result
               </h3>
-
               <div className="bg-indigo-50 border-2 border-indigo-200 rounded-lg p-6 mb-6">
                 <div className="flex justify-between items-center">
                   <span className="text-xl font-semibold text-gray-700">
@@ -568,15 +764,16 @@ function App() {
                   </span>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 {Object.entries(calculation).map(([key, value]) => {
                   if (
-                    key === "Net Total" ||
-                    key === "Fields" ||
-                    key === "values" ||
-                    key === "ID" ||
-                    key === "row_number"
+                    [
+                      "Net Total",
+                      "Fields",
+                      "values",
+                      "ID",
+                      "row_number",
+                    ].includes(key)
                   )
                     return null;
                   return (
