@@ -1,38 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import logo from "./images/MLI logo.jpeg";
 
-// ─── ENV helpers ────────────────────────────────────────────────────────────
-// Parse branches from VITE_BRANCHES env var
-// Format: "Label|City|Code,Label2|City2|Code2"
-const parseBranches = () => {
-  const raw = import.meta.env.VITE_BRANCHES || "";
-  return raw
-    .split(",")
-    .map((b) => b.trim())
-    .filter(Boolean)
-    .map((b) => {
-      const [label, city, code] = b.split("|");
-      return { label: label?.trim(), city: city?.trim(), code: code?.trim() };
-    });
+// ─── Hardcoded Config ──────────────────────────────────────
+const BRANCHES = [{ label: "Bangalore", city: "Bengaluru", code: "BLR" }];
+
+const BRANCH_CREDS = {
+  BLR: {
+    usernames: ["blrsc1", "blrsc2", "blrsc3", "blrsc4", "blrsc5"],
+    password: "Mli@123",
+  },
 };
 
-// Parse credentials for a given branch code from VITE_CREDS_<CODE>
-// Format: "user1,user2,user3|sharedPassword"
-const getCredsForBranch = (code) => {
-  const key = `VITE_CREDS_${code}`;
-  const raw = import.meta.env[key] || "";
-  const [usersPart, password] = raw.split("|");
-  const usernames = usersPart
-    ? usersPart
-        .split(",")
-        .map((u) => u.trim())
-        .filter(Boolean)
-    : [];
-  return { usernames, password: password?.trim() };
-};
-// ────────────────────────────────────────────────────────────────────────────
-
-const BRANCHES = parseBranches();
+const getCredsForBranch = (code) =>
+  BRANCH_CREDS[code] || { usernames: [], password: "" };
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ── UI Components ─────────────────────────────────────────────────────────
 const Logo = () => (
@@ -41,12 +22,13 @@ const Logo = () => (
       src={logo}
       alt="MLI"
       style={{
-        height: "80px",
-        width: "80px",
-        borderRadius: "12px",
+        height: "120px",
+        width: "120px",
+        borderRadius: "16px",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        objectFit: "cover",
       }}
     />
   </div>
@@ -105,7 +87,7 @@ const LogoutButton = ({ onLogout }) => (
   </div>
 );
 
-// ── Branch city accent colors (cycles if more branches added) ───────────────
+// ── Branch city accent colors ───────────────────────────────────────────────
 const BRANCH_ACCENTS = [
   {
     bg: "from-orange-400 to-rose-500",
@@ -232,7 +214,6 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
               }
               onClick={() => onSelectBranch(branch)}
             >
-              {/* coloured top strip */}
               <div
                 className={`bg-gradient-to-r ${accent.bg}`}
                 style={{ height: 6 }}
@@ -310,8 +291,8 @@ function App() {
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [loggedInUser, setLoggedInUser] = useState("");
 
-  // Products page state
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [fields, setFields] = useState([]);
@@ -322,7 +303,6 @@ function App() {
   const [calculationError, setCalculationError] = useState("");
   const resultRef = useRef(null);
 
-  // Check for saved login on mount
   useEffect(() => {
     const savedAuth = localStorage.getItem("isAuthenticated");
     const savedBranchCode = localStorage.getItem("branchCode");
@@ -366,6 +346,7 @@ function App() {
         usernames.includes(email.trim()) && password === validPassword;
 
       if (isValid) {
+        setLoggedInUser(email.trim());
         setStep("app");
         if (rememberMe) {
           localStorage.setItem("isAuthenticated", "true");
@@ -388,6 +369,7 @@ function App() {
     setEmail("");
     setPassword("");
     setRememberMe(false);
+    setLoggedInUser("");
     setSelectedProduct(null);
     setProducts([]);
     setFields([]);
@@ -458,16 +440,27 @@ function App() {
     setCalculationError("");
     setCalculation(null);
 
+    // Derive user ID from username suffix: blrsc1 -> "1", blrsc2 -> "2", etc.
+    const userIdMatch = loggedInUser.match(/\d+$/);
+    const userId = userIdMatch ? userIdMatch[0] : "1";
+
     const values = {};
     fields.forEach((field) => {
+      if (field.field === "ID") {
+        values["ID"] = userId;
+        return;
+      }
       const value = formValues[field.field];
       values[field.field] =
         value === "" || value === null || value === undefined ? "0" : value;
     });
+    // Always ensure ID is set even if not in fields list
+    values["ID"] = userId;
 
     try {
+      // ✅ Updated to production webhook URL (removed -test)
       const response = await fetch(
-        "https://n8n.automate.ourdept.com/webhook-test/mli/banglore/product/price",
+        "https://n8n.automate.ourdept.com/webhook/mli/banglore/product/price",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -522,7 +515,6 @@ function App() {
         <Logo />
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-            {/* Branch badge */}
             <div className="flex items-center justify-between mb-6">
               <button
                 onClick={() => setStep("branch")}
@@ -617,7 +609,7 @@ function App() {
         <Logo />
         <LogoutButton onLogout={handleLogout} />
         <div className="min-h-screen bg-gray-50 p-8">
-          <div className="max-w-6xl mx-auto" style={{ marginTop: "60px" }}>
+          <div className="max-w-6xl mx-auto" style={{ marginTop: "80px" }}>
             <div className="mb-8 flex items-center justify-between">
               <div>
                 <h1 className="text-4xl font-bold text-gray-800 mb-2">
@@ -668,7 +660,7 @@ function App() {
       <Logo />
       <LogoutButton onLogout={handleLogout} />
       <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-4xl mx-auto" style={{ marginTop: "60px" }}>
+        <div className="max-w-4xl mx-auto" style={{ marginTop: "80px" }}>
           <button
             onClick={handleBackToProducts}
             className="mb-6 text-indigo-600 hover:text-indigo-700 flex items-center gap-2"
