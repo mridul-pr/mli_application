@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import logo from "./images/MLI logo.jpeg";
 
 // ─── Hardcoded Config ──────────────────────────────────────
@@ -301,7 +301,6 @@ function App() {
   const [loadingFields, setLoadingFields] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState("");
-  const resultRef = useRef(null);
 
   useEffect(() => {
     const savedAuth = localStorage.getItem("isAuthenticated");
@@ -319,12 +318,6 @@ function App() {
     const timer = setTimeout(() => setInitialLoading(false), 1500);
     return () => clearTimeout(timer);
   }, []);
-
-  useEffect(() => {
-    if (calculation && resultRef.current) {
-      resultRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, [calculation]);
 
   const handleBranchSelect = (branch) => {
     setSelectedBranch(branch);
@@ -441,13 +434,6 @@ function App() {
     setCalculation(null);
 
     try {
-      // ── Validate required fields ──
-      for (const field of fields) {
-        if (!formValues[field.field] && field.field !== "ID") {
-          throw new Error(`${field.field} is required`);
-        }
-      }
-
       // ── Extract user ID ──
       const userIdMatch = loggedInUser.match(/\d+$/);
       const userId = userIdMatch ? userIdMatch[0] : "1";
@@ -738,7 +724,12 @@ function App() {
                                 key={optIndex}
                                 type="button"
                                 onClick={() =>
-                                  handleFieldChange(field.field, option)
+                                  handleFieldChange(
+                                    field.field,
+                                    formValues[field.field] === option
+                                      ? ""
+                                      : option,
+                                  )
                                 }
                                 className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-150
                                   ${
@@ -795,7 +786,7 @@ function App() {
             </div>
 
             {/* RIGHT: Quotation Result */}
-            <div ref={resultRef} className="w-80 flex-shrink-0">
+            <div className="w-80 flex-shrink-0">
               {calculation ? (
                 <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
                   <h3 className="text-xl font-bold text-gray-800 mb-4">
