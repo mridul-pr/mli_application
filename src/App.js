@@ -697,20 +697,25 @@ function App() {
                         {field.field}
                       </label>
                       {field.value && field.value.length > 0 ? (
-                        <select
-                          value={formValues[field.field] || ""}
-                          onChange={(e) =>
-                            handleFieldChange(field.field, e.target.value)
-                          }
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                        >
-                          <option value="">Select {field.field}</option>
+                        <div className="flex flex-wrap gap-2">
                           {field.value.map((option, optIndex) => (
-                            <option key={optIndex} value={option}>
+                            <button
+                              key={optIndex}
+                              type="button"
+                              onClick={() =>
+                                handleFieldChange(field.field, option)
+                              }
+                              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-150
+          ${
+            formValues[field.field] === option
+              ? "bg-indigo-600 border-indigo-600 text-white"
+              : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+          }`}
+                            >
                               {option}
-                            </option>
+                            </button>
                           ))}
-                        </select>
+                        </div>
                       ) : (
                         <input
                           type={
