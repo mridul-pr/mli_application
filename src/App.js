@@ -440,25 +440,33 @@ function App() {
     setCalculationError("");
     setCalculation(null);
 
-    // Derive user ID from username suffix: blrsc1 -> "1", blrsc2 -> "2", etc.
-    const userIdMatch = loggedInUser.match(/\d+$/);
-    const userId = userIdMatch ? userIdMatch[0] : "1";
-
-    const values = {};
-    fields.forEach((field) => {
-      if (field.field === "ID") {
-        values["ID"] = userId;
-        return;
-      }
-      const value = formValues[field.field];
-      values[field.field] =
-        value === "" || value === null || value === undefined ? "0" : value;
-    });
-    // Always ensure ID is set even if not in fields list
-    values["ID"] = userId;
-
     try {
-      // ✅ Updated to production webhook URL (removed -test)
+      // ── Validate required fields ──
+      for (const field of fields) {
+        if (!formValues[field.field] && field.field !== "ID") {
+          throw new Error(`${field.field} is required`);
+        }
+      }
+
+      // ── Extract user ID ──
+      const userIdMatch = loggedInUser.match(/\d+$/);
+      const userId = userIdMatch ? userIdMatch[0] : "1";
+
+      // ── Build values safely ──
+      const values = {};
+      fields.forEach((field) => {
+        if (field.field === "ID") {
+          values["ID"] = userId;
+        } else {
+          const value = formValues[field.field];
+          values[field.field] =
+            value === "" || value === null || value === undefined ? "0" : value;
+        }
+      });
+
+      values["ID"] = userId;
+
+      // ── API Call ──
       const response = await fetch(
         "https://n8n.automate.ourdept.com/webhook/mli/banglore/product/price",
         {
@@ -468,18 +476,42 @@ function App() {
             product: selectedProduct["Products Name"],
             productCode: selectedProduct["Products Code"],
             sheetID: selectedProduct["Sheet ID"] ?? "",
-            values: values,
+            values,
           }),
         },
       );
 
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // ── Handle HTTP errors ──
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Server error (${response.status}): ${text}`);
+      }
+
       const result = await response.json();
+
+      // ── Validate response ──
+      if (!result || typeof result !== "object") {
+        throw new Error("Invalid response from server");
+      }
+
+      if (!result["Net Total"]) {
+        throw new Error("Calculation failed: Net Total missing");
+      }
+
       setCalculation(result);
     } catch (error) {
-      console.error("Error calculating price:", error);
-      setCalculationError("Failed to calculate price. Please try again.");
+      console.error("Calculation error:", error);
+
+      // ── User-friendly messages ──
+      if (error.message.includes("required")) {
+        setCalculationError(error.message);
+      } else if (error.message.includes("Failed to fetch")) {
+        setCalculationError("Network error. Check your connection.");
+      } else if (error.message.includes("Server error")) {
+        setCalculationError("Server issue. Please try again later.");
+      } else {
+        setCalculationError("Something went wrong. Please try again.");
+      }
     } finally {
       setCalculating(false);
     }
