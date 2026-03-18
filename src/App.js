@@ -22,7 +22,7 @@ const Logo = () => (
       src={logo}
       alt="MLI"
       style={{
-        height: "120px",
+        height: "90px",
         width: "120px",
         borderRadius: "16px",
         display: "flex",
