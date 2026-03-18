@@ -692,7 +692,7 @@ function App() {
       <Logo />
       <LogoutButton onLogout={handleLogout} />
       <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-4xl mx-auto" style={{ marginTop: "80px" }}>
+        <div className="max-w-7xl mx-auto" style={{ marginTop: "80px" }}>
           <button
             onClick={handleBackToProducts}
             className="mb-6 text-indigo-600 hover:text-indigo-700 flex items-center gap-2"
@@ -700,136 +700,177 @@ function App() {
             ← Back to Products
           </button>
 
-          <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-3xl font-bold text-gray-800">
-                  {selectedProduct["Products Name"]}
-                </h2>
-                <p className="text-gray-600 mt-1">
-                  {selectedProduct.Description}
-                </p>
-              </div>
-              <span className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full text-lg font-semibold">
-                {selectedProduct["Products Code"]}
-              </span>
-            </div>
-
-            {loadingFields ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto" />
-                <p className="text-gray-600 mt-4">Loading fields...</p>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  {fields.map((field, index) => (
-                    <div key={index}>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {field.field}
-                      </label>
-                      {field.value && field.value.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {field.value.map((option, optIndex) => (
-                            <button
-                              key={optIndex}
-                              type="button"
-                              onClick={() =>
-                                handleFieldChange(field.field, option)
-                              }
-                              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-150
-          ${
-            formValues[field.field] === option
-              ? "bg-indigo-600 border-indigo-600 text-white"
-              : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-          }`}
-                            >
-                              {option}
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <input
-                          type={
-                            field.field.toLowerCase() === "misc"
-                              ? "text"
-                              : "number"
-                          }
-                          value={formValues[field.field] || ""}
-                          onChange={(e) =>
-                            handleFieldChange(field.field, e.target.value)
-                          }
-                          placeholder={`Enter ${field.field}`}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                        />
-                      )}
-                    </div>
-                  ))}
+          {/* Side-by-side layout */}
+          <div className="flex gap-6 items-start">
+            {/* LEFT: Form */}
+            <div className="bg-white rounded-xl shadow-lg p-8 flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-800">
+                    {selectedProduct["Products Name"]}
+                  </h2>
+                  <p className="text-gray-600 mt-1">
+                    {selectedProduct.Description}
+                  </p>
                 </div>
+                <span className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full text-lg font-semibold whitespace-nowrap ml-4">
+                  {selectedProduct["Products Code"]}
+                </span>
+              </div>
 
-                {calculationError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
-                    {calculationError}
+              {loadingFields ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto" />
+                  <p className="text-gray-600 mt-4">Loading fields...</p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    {fields.map((field, index) => (
+                      <div key={index}>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {field.field}
+                        </label>
+                        {field.value && field.value.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {field.value.map((option, optIndex) => (
+                              <button
+                                key={optIndex}
+                                type="button"
+                                onClick={() =>
+                                  handleFieldChange(field.field, option)
+                                }
+                                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-150
+                                  ${
+                                    formValues[field.field] === option
+                                      ? "bg-indigo-600 border-indigo-600 text-white"
+                                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                                  }`}
+                              >
+                                {option}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <input
+                            type={
+                              field.field.toLowerCase() === "misc"
+                                ? "text"
+                                : "number"
+                            }
+                            value={formValues[field.field] || ""}
+                            onChange={(e) =>
+                              handleFieldChange(field.field, e.target.value)
+                            }
+                            placeholder={`Enter ${field.field}`}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                          />
+                        )}
+                      </div>
+                    ))}
                   </div>
-                )}
 
-                <button
-                  onClick={handleCalculatePrice}
-                  disabled={calculating}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {calculating ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-                      Calculating...
-                    </>
-                  ) : (
-                    "Calculate Price"
-                  )}
-                </button>
-              </>
-            )}
-          </div>
-
-          {calculation && (
-            <div className="bg-white rounded-xl shadow-lg p-8" ref={resultRef}>
-              <h3 className="text-2xl font-bold text-gray-800 mb-6">
-                Quotation Result
-              </h3>
-              <div className="bg-indigo-50 border-2 border-indigo-200 rounded-lg p-6 mb-6">
-                <div className="flex justify-between items-center">
-                  <span className="text-xl font-semibold text-gray-700">
-                    Net Total
-                  </span>
-                  <span className="text-3xl font-bold text-indigo-600">
-                    ₹{calculation["Net Total"]?.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                {Object.entries(calculation).map(([key, value]) => {
-                  if (
-                    [
-                      "Net Total",
-                      "Fields",
-                      "values",
-                      "ID",
-                      "row_number",
-                    ].includes(key)
-                  )
-                    return null;
-                  return (
-                    <div key={key} className="border-b border-gray-200 py-2">
-                      <span className="text-sm text-gray-600">{key}</span>
-                      <p className="font-semibold text-gray-800">
-                        {value || "0"}
-                      </p>
+                  {calculationError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
+                      {calculationError}
                     </div>
-                  );
-                })}
-              </div>
+                  )}
+
+                  <button
+                    onClick={handleCalculatePrice}
+                    disabled={calculating}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {calculating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                        Calculating...
+                      </>
+                    ) : (
+                      "Calculate Price"
+                    )}
+                  </button>
+                </>
+              )}
             </div>
-          )}
+
+            {/* RIGHT: Quotation Result */}
+            <div ref={resultRef} className="w-80 flex-shrink-0">
+              {calculation ? (
+                <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">
+                    Quotation Result
+                  </h3>
+
+                  {/* Net Total highlight */}
+                  <div className="bg-indigo-50 border-2 border-indigo-200 rounded-lg p-4 mb-5">
+                    <p className="text-sm font-medium text-gray-500 mb-1">
+                      Net Total
+                    </p>
+                    <p className="text-3xl font-bold text-indigo-600">
+                      ₹{calculation["Net Total"]?.toFixed(2)}
+                    </p>
+                  </div>
+
+                  {/* Breakdown */}
+                  <div className="space-y-2">
+                    {Object.entries(calculation).map(([key, value]) => {
+                      if (
+                        [
+                          "Net Total",
+                          "Fields",
+                          "values",
+                          "ID",
+                          "row_number",
+                        ].includes(key)
+                      )
+                        return null;
+                      return (
+                        <div
+                          key={key}
+                          className="flex justify-between items-center border-b border-gray-100 py-2"
+                        >
+                          <span className="text-sm text-gray-500">{key}</span>
+                          <span className="text-sm font-semibold text-gray-800">
+                            {value || "0"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                /* Placeholder when no result yet */
+                <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24 border-2 border-dashed border-gray-200">
+                  <div className="text-center py-8">
+                    <div className="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#6366f1"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <line x1="12" y1="1" x2="12" y2="23" />
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-400 text-sm">
+                      Fill in the form and click{" "}
+                      <span className="font-semibold text-indigo-500">
+                        Calculate Price
+                      </span>{" "}
+                      to see your quotation here.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       <Watermark text="HRLabs" />
