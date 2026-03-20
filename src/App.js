@@ -17,14 +17,14 @@ const getCredsForBranch = (code) =>
 
 // ── UI Components ─────────────────────────────────────────────────────────
 const Logo = () => (
-  <div style={{ position: "fixed", top: "20px", left: "20px", zIndex: 1000 }}>
+  <div style={{ position: "fixed", top: "12px", left: "12px", zIndex: 1000 }}>
     <img
       src={logo}
       alt="MLI"
       style={{
-        height: "90px",
-        width: "120px",
-        borderRadius: "16px",
+        height: "60px",
+        width: "80px",
+        borderRadius: "12px",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -38,11 +38,13 @@ const Watermark = ({ text }) => (
   <div
     style={{
       position: "fixed",
-      bottom: "20px",
-      right: "20px",
+      bottom: "10px",
+      left: "50%",
+      transform: "translateX(-50%)",
       opacity: 0.3,
-      fontSize: "12px",
+      fontSize: "11px",
       color: "#666",
+      whiteSpace: "nowrap",
     }}
   >
     {text}
@@ -51,10 +53,10 @@ const Watermark = ({ text }) => (
 
 const LoadingScreen = () => (
   <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-indigo-600 mx-auto mb-4" />
-      <h2 className="text-2xl font-bold text-gray-800 mb-2">Loading...</h2>
-      <p className="text-gray-600">
+    <div className="text-center px-4">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto mb-4" />
+      <h2 className="text-xl font-bold text-gray-800 mb-2">Loading...</h2>
+      <p className="text-gray-600 text-sm">
         Please wait while we prepare your experience
       </p>
     </div>
@@ -62,15 +64,15 @@ const LoadingScreen = () => (
 );
 
 const LogoutButton = ({ onLogout }) => (
-  <div style={{ position: "fixed", top: "20px", right: "20px", zIndex: 1000 }}>
+  <div style={{ position: "fixed", top: "12px", right: "12px", zIndex: 1000 }}>
     <button
       onClick={onLogout}
-      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200 flex items-center gap-2 shadow-md"
+      className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition duration-200 flex items-center gap-1 shadow-md text-sm"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
+        width="14"
+        height="14"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -82,7 +84,7 @@ const LogoutButton = ({ onLogout }) => (
         <polyline points="16 17 21 12 16 7" />
         <line x1="21" y1="12" x2="9" y2="12" />
       </svg>
-      Logout
+      <span className="hidden sm:inline">Logout</span>
     </button>
   </div>
 );
@@ -136,19 +138,21 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
         transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease, border-color 0.18s ease;
         position: relative;
       }
-      .branch-card:hover {
-        transform: translateY(-6px) scale(1.02);
-        box-shadow: 0 16px 40px rgba(0,0,0,0.13);
+      @media (hover: hover) {
+        .branch-card:hover {
+          transform: translateY(-6px) scale(1.02);
+          box-shadow: 0 16px 40px rgba(0,0,0,0.13);
+        }
       }
       .branch-card .card-header {
-        padding: 32px 28px 24px;
+        padding: 24px 20px 18px;
         display: flex;
         flex-direction: column;
         align-items: flex-start;
-        gap: 14px;
+        gap: 12px;
       }
       .branch-card .card-footer {
-        padding: 16px 28px;
+        padding: 14px 20px;
         border-top: 1px solid rgba(0,0,0,0.06);
         display: flex;
         align-items: center;
@@ -158,12 +162,12 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
         letter-spacing: 0.02em;
       }
       .branch-icon-wrap {
-        width: 52px; height: 52px;
+        width: 48px; height: 48px;
         border-radius: 14px;
         display: flex; align-items: center; justify-content: center;
       }
-      .branch-label { font-size: 22px; font-weight: 800; color: #1e1b4b; line-height: 1.2; }
-      .branch-city  { font-size: 13px; font-weight: 500; color: #6b7280; margin-top: 2px; font-family: 'DM Sans', sans-serif; }
+      .branch-label { font-size: 20px; font-weight: 800; color: #1e1b4b; line-height: 1.2; }
+      .branch-city  { font-size: 12px; font-weight: 500; color: #6b7280; margin-top: 2px; font-family: 'DM Sans', sans-serif; }
       .code-badge {
         font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
         padding: 3px 10px; border-radius: 999px;
@@ -176,18 +180,29 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
           radial-gradient(ellipse at 10% 20%, rgba(99,102,241,0.08) 0%, transparent 60%),
           radial-gradient(ellipse at 90% 80%, rgba(251,113,133,0.07) 0%, transparent 60%);
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        padding: 40px 16px;
+        padding: 80px 16px 40px;
         font-family: 'Sora', sans-serif;
       }
       .branch-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
         width: 100%;
         max-width: 800px;
       }
-      .screen-title { font-size: 36px; font-weight: 800; color: #1e1b4b; text-align: center; margin-bottom: 6px; }
-      .screen-sub   { font-size: 15px; color: #6b7280; text-align: center; margin-bottom: 40px; font-family: 'DM Sans', sans-serif; }
+      @media (max-width: 480px) {
+        .branch-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .screen-title { font-size: 28px; font-weight: 800; color: #1e1b4b; text-align: center; margin-bottom: 6px; }
+      .screen-sub   { font-size: 14px; color: #6b7280; text-align: center; margin-bottom: 32px; font-family: 'DM Sans', sans-serif; }
+      @media (min-width: 640px) {
+        .screen-title { font-size: 36px; }
+        .screen-sub { font-size: 15px; }
+        .branch-card .card-header { padding: 32px 28px 24px; gap: 14px; }
+        .branch-card .card-footer { padding: 16px 28px; }
+      }
       .arrow-circle {
         width: 28px; height: 28px; border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
@@ -226,8 +241,8 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="26"
-                    height="26"
+                    width="24"
+                    height="24"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke={accent.icon}
@@ -434,11 +449,9 @@ function App() {
     setCalculation(null);
 
     try {
-      // ── Extract user ID ──
       const userIdMatch = loggedInUser.match(/\d+$/);
       const userId = userIdMatch ? userIdMatch[0] : "1";
 
-      // ── Build values safely ──
       const values = {};
       fields.forEach((field) => {
         if (field.field === "ID") {
@@ -452,7 +465,6 @@ function App() {
 
       values["ID"] = userId;
 
-      // ── API Call ──
       const response = await fetch(
         "https://n8n.automate.ourdept.com/webhook/mli/banglore/product/price",
         {
@@ -467,7 +479,6 @@ function App() {
         },
       );
 
-      // ── Handle HTTP errors ──
       if (!response.ok) {
         const text = await response.text();
         throw new Error(`Server error (${response.status}): ${text}`);
@@ -475,7 +486,6 @@ function App() {
 
       const result = await response.json();
 
-      // ── Validate response ──
       if (!result || typeof result !== "object") {
         throw new Error("Invalid response from server");
       }
@@ -488,7 +498,6 @@ function App() {
     } catch (error) {
       console.error("Calculation error:", error);
 
-      // ── User-friendly messages ──
       if (error.message.includes("required")) {
         setCalculationError(error.message);
       } else if (error.message.includes("Failed to fetch")) {
@@ -532,7 +541,8 @@ function App() {
       <>
         <Logo />
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+          {/* Push card down enough to clear the logo on mobile */}
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 sm:p-8 mt-16 sm:mt-0">
             <div className="flex items-center justify-between mb-6">
               <button
                 onClick={() => setStep("branch")}
@@ -540,19 +550,19 @@ function App() {
               >
                 ← Change Branch
               </button>
-              <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-semibold">
+              <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs sm:text-sm font-semibold">
                 📍 {selectedBranch?.label}
               </span>
             </div>
 
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            <div className="text-center mb-6 sm:mb-8">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
                 Welcome Back
               </h1>
-              <p className="text-gray-600">Sign in to your account</p>
+              <p className="text-gray-600 text-sm">Sign in to your account</p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Username
@@ -562,7 +572,7 @@ function App() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-sm"
                   placeholder="mli@gmail.com"
                   autoComplete="username"
                 />
@@ -577,7 +587,7 @@ function App() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-sm"
                   placeholder="••••••••"
                   autoComplete="current-password"
                 />
@@ -608,7 +618,7 @@ function App() {
               <button
                 onClick={handleLogin}
                 disabled={isLoading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 {isLoading ? "Signing in..." : "Sign In"}
               </button>
@@ -620,46 +630,50 @@ function App() {
     );
   }
 
-  // ── App (Products / Calculation) ─────────────────────────────────────────
+  // ── Products List ─────────────────────────────────────────────────────────
   if (!selectedProduct) {
     return (
       <>
         <Logo />
         <LogoutButton onLogout={handleLogout} />
-        <div className="min-h-screen bg-gray-50 p-8">
-          <div className="max-w-6xl mx-auto" style={{ marginTop: "80px" }}>
-            <div className="mb-8 flex items-center justify-between">
-              <div>
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">
-                  Select a Product
-                </h1>
-                <p className="text-gray-600">
-                  Choose a product to get a quotation
-                </p>
+        <div className="min-h-screen bg-gray-50 px-4 py-6 sm:p-8">
+          <div className="max-w-6xl mx-auto" style={{ marginTop: "72px" }}>
+            <div className="mb-6 sm:mb-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1">
+                    Select a Product
+                  </h1>
+                  <p className="text-gray-600 text-sm sm:text-base">
+                    Choose a product to get a quotation
+                  </p>
+                </div>
+                <span className="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full font-semibold text-sm self-start sm:self-auto">
+                  📍 {selectedBranch?.label}
+                </span>
               </div>
-              <span className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full font-semibold">
-                📍 {selectedBranch?.label}
-              </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {products.map((product) => (
                 <div
                   key={product.row_number}
                   className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border-2 border-transparent hover:border-indigo-500"
                   onClick={() => handleProductSelect(product)}
                 >
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-bold text-gray-800">
+                  <div className="p-5 sm:p-6">
+                    <div className="flex items-start justify-between mb-3 gap-2">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-800 leading-tight">
                         {product["Products Name"]}
                       </h3>
-                      <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-semibold">
+                      <span className="bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0">
                         {product["Products Code"]}
                       </span>
                     </div>
-                    <p className="text-gray-600 mb-4">{product.Description}</p>
-                    <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg transition">
+                    <p className="text-gray-600 mb-4 text-sm">
+                      {product.Description}
+                    </p>
+                    <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg transition text-sm font-medium">
                       Select Product
                     </button>
                   </div>
@@ -673,45 +687,51 @@ function App() {
     );
   }
 
+  // ── Product Form + Quotation ───────────────────────────────────────────────
   return (
     <>
       <Logo />
       <LogoutButton onLogout={handleLogout} />
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-7xl mx-auto" style={{ marginTop: "80px" }}>
+      <div className="min-h-screen bg-gray-50 px-4 py-6 sm:p-8">
+        <div className="max-w-7xl mx-auto" style={{ marginTop: "72px" }}>
           <button
             onClick={handleBackToProducts}
-            className="mb-6 text-indigo-600 hover:text-indigo-700 flex items-center gap-2"
+            className="mb-5 text-indigo-600 hover:text-indigo-700 flex items-center gap-2 text-sm"
           >
             ← Back to Products
           </button>
 
-          {/* Side-by-side layout */}
-          <div className="flex gap-6 items-start">
+          {/*
+           * On mobile:  stacked vertically (flex-col)
+           * On desktop: side by side (lg:flex-row)
+           */}
+          <div className="flex flex-col lg:flex-row gap-5 lg:gap-6 items-start">
             {/* LEFT: Form */}
-            <div className="bg-white rounded-xl shadow-lg p-8 flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-white rounded-xl shadow-lg p-5 sm:p-8 w-full lg:flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5 sm:mb-6">
                 <div>
-                  <h2 className="text-3xl font-bold text-gray-800">
+                  <h2 className="text-xl sm:text-3xl font-bold text-gray-800">
                     {selectedProduct["Products Name"]}
                   </h2>
-                  <p className="text-gray-600 mt-1">
+                  <p className="text-gray-600 mt-1 text-sm">
                     {selectedProduct.Description}
                   </p>
                 </div>
-                <span className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full text-lg font-semibold whitespace-nowrap ml-4">
+                <span className="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap self-start">
                   {selectedProduct["Products Code"]}
                 </span>
               </div>
 
               {loadingFields ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto" />
-                  <p className="text-gray-600 mt-4">Loading fields...</p>
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto" />
+                  <p className="text-gray-600 mt-4 text-sm">
+                    Loading fields...
+                  </p>
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     {fields.map((field, index) => (
                       <div key={index}>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -731,7 +751,7 @@ function App() {
                                       : option,
                                   )
                                 }
-                                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-150
+                                className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-150
                                   ${
                                     formValues[field.field] === option
                                       ? "bg-indigo-600 border-indigo-600 text-white"
@@ -754,7 +774,7 @@ function App() {
                               handleFieldChange(field.field, e.target.value)
                             }
                             placeholder={`Enter ${field.field}`}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
                           />
                         )}
                       </div>
@@ -770,11 +790,11 @@ function App() {
                   <button
                     onClick={handleCalculatePrice}
                     disabled={calculating}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
                   >
                     {calculating ? (
                       <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                         Calculating...
                       </>
                     ) : (
@@ -785,11 +805,11 @@ function App() {
               )}
             </div>
 
-            {/* RIGHT: Quotation Result */}
-            <div className="w-80 flex-shrink-0">
+            {/* RIGHT: Quotation Result — full width on mobile, fixed sidebar on desktop */}
+            <div className="w-full lg:w-80 lg:flex-shrink-0">
               {calculation ? (
-                <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4">
+                <div className="bg-white rounded-xl shadow-lg p-5 sm:p-6 lg:sticky lg:top-24">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4">
                     Quotation Result
                   </h3>
 
@@ -798,7 +818,7 @@ function App() {
                     <p className="text-sm font-medium text-gray-500 mb-1">
                       Net Total
                     </p>
-                    <p className="text-3xl font-bold text-indigo-600">
+                    <p className="text-2xl sm:text-3xl font-bold text-indigo-600">
                       ₹{calculation["Net Total"]?.toFixed(2)}
                     </p>
                   </div>
@@ -832,13 +852,13 @@ function App() {
                 </div>
               ) : (
                 /* Placeholder when no result yet */
-                <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24 border-2 border-dashed border-gray-200">
-                  <div className="text-center py-8">
-                    <div className="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                <div className="bg-white rounded-xl shadow-lg p-5 sm:p-6 lg:sticky lg:top-24 border-2 border-dashed border-gray-200">
+                  <div className="text-center py-6">
+                    <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-3">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
+                        width="22"
+                        height="22"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="#6366f1"
