@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import logo from "./images/MLI logo.jpeg";
 
 // ─── Hardcoded Config ──────────────────────────────────────
@@ -76,7 +76,6 @@ const UserBadge = ({ fullName, role, onLogout }) => {
       style={{ position: "fixed", top: "12px", right: "12px", zIndex: 1000 }}
       className="flex items-center gap-2"
     >
-      {/* User info pill */}
       <div className="hidden sm:flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
         <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
           {initials}
@@ -92,7 +91,6 @@ const UserBadge = ({ fullName, role, onLogout }) => {
           )}
         </div>
       </div>
-      {/* Logout button */}
       <button
         onClick={onLogout}
         className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition duration-200 flex items-center gap-1 shadow-md text-sm"
@@ -194,26 +192,26 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
         .branch-card .card-footer { padding: 16px 28px; }
       }
       .arrow-circle { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.otp-input {
-  flex: 1;
-  min-width: 0;
-  aspect-ratio: 1 / 1.1;
-  max-width: 52px;
-  text-align: center;
-  font-size: 20px;
-  font-weight: 700;
-  border: 2px solid #d1d5db;
-  border-radius: 10px;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  background: #fff;
-  color: #1e1b4b;
-  padding: 0;
-}
-.otp-input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-}
+      .otp-input {
+        flex: 1;
+        min-width: 0;
+        aspect-ratio: 1 / 1.1;
+        max-width: 52px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: 700;
+        border: 2px solid #d1d5db;
+        border-radius: 10px;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        background: #fff;
+        color: #1e1b4b;
+        padding: 0;
+      }
+      .otp-input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+      }
     `}</style>
     <div className="branch-screen-bg">
       <p className="screen-title">Choose Your Branch</p>
@@ -358,9 +356,9 @@ const OtpInput = ({ value, onChange, length = 6 }) => {
     </div>
   );
 };
+
 // ── Main App ───────────────────────────────────────────────────────────────
 function App() {
-  // step: "branch" | "login" | "otp" | "app"
   const [step, setStep] = useState("branch");
   const [selectedBranch, setSelectedBranch] = useState(null);
 
@@ -370,7 +368,6 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // User profile
   const [loggedInUser, setLoggedInUser] = useState({
     username: "",
     full_name: "",
@@ -381,7 +378,6 @@ function App() {
   // eslint-disable-next-line
   const [deviceToken, setDeviceToken] = useState("");
 
-  // OTP state
   const [otpValue, setOtpValue] = useState("");
   const [otpError, setOtpError] = useState("");
   const [otpMessage, setOtpMessage] = useState("");
@@ -397,6 +393,47 @@ function App() {
   const [calculating, setCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState("");
 
+  // ── Session expired — clear storage and redirect to login ──────────────
+  const handleSessionExpired = useCallback(() => {
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("branchCode");
+    localStorage.removeItem("jwt_token");
+    localStorage.removeItem("device_token");
+    localStorage.removeItem("username");
+    localStorage.removeItem("full_name");
+    localStorage.removeItem("role");
+
+    setJwtToken("");
+    setDeviceToken("");
+    setLoggedInUser({ username: "", full_name: "", role: "" });
+    setSelectedProduct(null);
+    setProducts([]);
+    setFields([]);
+    setFormValues({});
+    setCalculation(null);
+    setLoginError("Your session has expired. Please sign in again.");
+    setStep("login");
+  }, []);
+
+  // ── Authenticated fetch wrapper — adds JWT header, catches 401 globally ─
+  const authFetch = useCallback(
+    async (url, options = {}) => {
+      const token = localStorage.getItem("jwt_token") || "";
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token ? { jwt_token: token } : {}),
+        ...(options.headers || {}),
+      };
+      const response = await fetch(url, { ...options, headers });
+      if (response.status === 401) {
+        handleSessionExpired();
+        throw new Error("401 Unauthorized");
+      }
+      return response;
+    },
+    [handleSessionExpired],
+  );
+
   // ── Restore session from localStorage on mount ─────────────────────────
   useEffect(() => {
     const savedAuth = localStorage.getItem("isAuthenticated");
@@ -407,11 +444,11 @@ function App() {
     const savedFullName = localStorage.getItem("full_name");
     const savedRole = localStorage.getItem("role");
 
-    if (savedAuth === "true" && savedBranchCode && savedToken) {
+    if (savedAuth === "true" && savedBranchCode) {
       const branch = BRANCHES.find((b) => b.code === savedBranchCode);
       if (branch) {
         setSelectedBranch(branch);
-        setJwtToken(savedToken);
+        if (savedToken) setJwtToken(savedToken);
         if (savedDeviceToken) setDeviceToken(savedDeviceToken);
         setLoggedInUser({
           username: savedUsername || "",
@@ -425,6 +462,7 @@ function App() {
 
     const timer = setTimeout(() => setInitialLoading(false), 1500);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line
   }, []);
 
   const handleBranchSelect = (branch) => {
@@ -435,7 +473,7 @@ function App() {
     setStep("login");
   };
 
-  // ── Step 1: POST /login ────────────────────────────────────────────────
+  // ── Step 1: POST /login (no auth header needed) ────────────────────────
   const handleLogin = async () => {
     setLoginError("");
     setIsLoading(true);
@@ -456,16 +494,19 @@ function App() {
       );
 
       const result = await response.json();
+
       const token =
-        response.headers.get("Jwt_token") ||
         response.headers.get("jwt_token") ||
+        response.headers.get("Jwt_token") ||
+        result.jwt_token ||
+        result.token ||
         "";
       const devToken =
-        response.headers.get("Device_Token") ||
         response.headers.get("device_token") ||
+        response.headers.get("Device_Token") ||
+        result.device_token ||
         "";
 
-      // Build user profile from response body
       const userProfile = {
         username: result.username || email.trim(),
         full_name: result.full_name || "",
@@ -473,10 +514,8 @@ function App() {
       };
 
       if (result.status === "success" && token) {
-        // Trusted device — skip OTP
         finalizeLogin(userProfile, token, devToken);
       } else if (result.status === "otp_required") {
-        // Need OTP verification — save partial user info
         setPendingUsername(result.username || email.trim());
         setLoggedInUser(userProfile);
         setOtpMessage(
@@ -497,6 +536,7 @@ function App() {
     }
   };
 
+  // ── Step 2: POST /verify-otp (no auth header needed) ──────────────────
   const handleVerifyOtp = async () => {
     if (otpValue.replace(/\s/g, "").length < 6) {
       setOtpError("Please enter the complete 6-digit code.");
@@ -521,49 +561,32 @@ function App() {
 
       const result = await response.json();
 
-      // Log everything so you can see what's available
-      console.log("OTP verify status:", response.status);
-      console.log("OTP verify body:", result);
-      console.log("OTP verify headers jwt:", response.headers.get("jwt_token"));
-      console.log(
-        "OTP verify headers device:",
-        response.headers.get("Device_Token"),
-      );
-
-      // Read token from header first, fall back to every likely body field
       const token =
-        response.headers.get("Jwt_token") ||
         response.headers.get("jwt_token") ||
+        response.headers.get("Jwt_token") ||
         response.headers.get("JWT_TOKEN") ||
         result.jwt_token ||
         result.Jwt_token ||
-        result.JWT_TOKEN ||
         result.token ||
         result.access_token ||
         "";
 
       const devToken =
-        response.headers.get("Device_Token") ||
         response.headers.get("device_token") ||
+        response.headers.get("Device_Token") ||
         result.device_token ||
         result.Device_Token ||
         "";
 
-      // Consider it success if status is ok OR body says success — even if token is missing for now
       const isSuccess = result.status === "success" || response.ok;
 
-      if (isSuccess && token) {
+      if (isSuccess && (token || result.username)) {
         const userProfile = {
           username: result.username || loggedInUser.username || pendingUsername,
           full_name: result.full_name || loggedInUser.full_name || "",
           role: result.role || loggedInUser.role || "",
         };
         finalizeLogin(userProfile, token, devToken);
-      } else if (isSuccess && !token) {
-        // 200 OK but no token found anywhere — show what we got
-        setOtpError(
-          `Verified OK but no token found. Check console for response details.`,
-        );
       } else {
         setOtpError(result.message || "Invalid OTP. Please try again.");
       }
@@ -575,17 +598,16 @@ function App() {
     }
   };
 
-  // ── Persist session — always save, never remove until logout ──────────
+  // ── Persist session — survives reload, cleared only on logout ──────────
   const finalizeLogin = (userProfile, token, devToken) => {
     setLoggedInUser(userProfile);
     setJwtToken(token);
     if (devToken) setDeviceToken(devToken);
     setStep("app");
 
-    // Always persist — session survives page reload until explicit logout
     localStorage.setItem("isAuthenticated", "true");
     localStorage.setItem("branchCode", selectedBranch.code);
-    localStorage.setItem("jwt_token", token);
+    if (token) localStorage.setItem("jwt_token", token);
     if (devToken) localStorage.setItem("device_token", devToken);
     localStorage.setItem("username", userProfile.username);
     localStorage.setItem("full_name", userProfile.full_name);
@@ -612,7 +634,6 @@ function App() {
     setFormValues({});
     setCalculation(null);
 
-    // Only clear on explicit logout
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("branchCode");
     localStorage.removeItem("jwt_token");
@@ -626,16 +647,18 @@ function App() {
     if (e.key === "Enter") handleLogin();
   };
 
+  // ── All app API calls go through authFetch ─────────────────────────────
   const fetchProducts = async () => {
     try {
-      const response = await fetch(
-        "https://n8n.automate.ourdept.com/webhook/mli/banglore/products/list",
+      const response = await authFetch(
+        "https://n8n.automate.ourdept.com/webhook/mli/bangalore/products/list",
         { cache: "no-store" },
       );
       const result = await response.json();
       setProducts(result[0]?.data || []);
     } catch (error) {
-      console.error("Error fetching products:", error);
+      if (error.message !== "401 Unauthorized")
+        console.error("Error fetching products:", error);
     }
   };
 
@@ -648,11 +671,10 @@ function App() {
     setCalculationError("");
 
     try {
-      const response = await fetch(
-        "https://n8n.automate.ourdept.com/webhook/mli/banglore/product/fields",
+      const response = await authFetch(
+        "https://n8n.automate.ourdept.com/webhook/mli/bangalore/product/fields",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             product: product["Products Name"],
             productCode: product["Products Code"],
@@ -668,7 +690,8 @@ function App() {
       });
       setFormValues(initialValues);
     } catch (error) {
-      console.error("Error fetching fields:", error);
+      if (error.message !== "401 Unauthorized")
+        console.error("Error fetching fields:", error);
     } finally {
       setLoadingFields(false);
     }
@@ -684,20 +707,18 @@ function App() {
     setCalculation(null);
 
     try {
-      // Build values — ID field removed entirely
       const values = {};
       fields.forEach((field) => {
-        if (field.field === "ID") return; // skip ID
+        if (field.field === "ID") return;
         const value = formValues[field.field];
         values[field.field] =
           value === "" || value === null || value === undefined ? "0" : value;
       });
 
-      const response = await fetch(
-        "https://n8n.automate.ourdept.com/webhook/mli/banglore/product/price",
+      const response = await authFetch(
+        "https://n8n.automate.ourdept.com/webhook/mli/bangalore/product/price",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             product: selectedProduct["Products Name"],
             productCode: selectedProduct["Products Code"],
@@ -721,6 +742,7 @@ function App() {
 
       setCalculation(result);
     } catch (error) {
+      if (error.message === "401 Unauthorized") return;
       console.error("Calculation error:", error);
       if (error.message.includes("required"))
         setCalculationError(error.message);
@@ -752,6 +774,7 @@ function App() {
         <Watermark text="HRLabs" />
       </>
     );
+
   if (step === "branch")
     return <BranchSelectionScreen onSelectBranch={handleBranchSelect} />;
 
