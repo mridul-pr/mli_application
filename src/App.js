@@ -4,16 +4,26 @@ import logo from "./images/MLI logo.jpeg";
 // ─── Hardcoded Config ──────────────────────────────────────
 const BRANCHES = [{ label: "Bangalore", city: "Bengaluru", code: "BLR" }];
 
-const BRANCH_CREDS = {
-  BLR: {
-    usernames: ["blrsc1", "blrsc2", "blrsc3", "blrsc4", "blrsc5"],
-    password: "Mli@123",
-  },
-};
+// ── Utility: SHA-256 hash ──────────────────────────────────
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
-const getCredsForBranch = (code) =>
-  BRANCH_CREDS[code] || { usernames: [], password: "" };
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Utility: generate a persistent UUID v4 device token ───
+function generateDeviceToken() {
+  const stored = localStorage.getItem("device_token");
+  if (stored) return stored;
+  const uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+  localStorage.setItem("device_token", uuid);
+  return uuid;
+}
 
 // ── UI Components ─────────────────────────────────────────────────────────
 const Logo = () => (
@@ -89,7 +99,7 @@ const LogoutButton = ({ onLogout }) => (
   </div>
 );
 
-// ── Branch city accent colors ───────────────────────────────────────────────
+// ── Branch accent colors ────────────────────────────────────────────────────
 const BRANCH_ACCENTS = [
   {
     bg: "from-orange-400 to-rose-500",
@@ -139,80 +149,44 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
         position: relative;
       }
       @media (hover: hover) {
-        .branch-card:hover {
-          transform: translateY(-6px) scale(1.02);
-          box-shadow: 0 16px 40px rgba(0,0,0,0.13);
-        }
+        .branch-card:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 16px 40px rgba(0,0,0,0.13); }
       }
-      .branch-card .card-header {
-        padding: 24px 20px 18px;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-      }
-      .branch-card .card-footer {
-        padding: 14px 20px;
-        border-top: 1px solid rgba(0,0,0,0.06);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 13px;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-      }
-      .branch-icon-wrap {
-        width: 48px; height: 48px;
-        border-radius: 14px;
-        display: flex; align-items: center; justify-content: center;
-      }
+      .branch-card .card-header { padding: 24px 20px 18px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+      .branch-card .card-footer { padding: 14px 20px; border-top: 1px solid rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
+      .branch-icon-wrap { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
       .branch-label { font-size: 20px; font-weight: 800; color: #1e1b4b; line-height: 1.2; }
-      .branch-city  { font-size: 12px; font-weight: 500; color: #6b7280; margin-top: 2px; font-family: 'DM Sans', sans-serif; }
-      .code-badge {
-        font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
-        padding: 3px 10px; border-radius: 999px;
-        text-transform: uppercase;
-      }
+      .branch-city { font-size: 12px; font-weight: 500; color: #6b7280; margin-top: 2px; font-family: 'DM Sans', sans-serif; }
+      .code-badge { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; }
       .branch-screen-bg {
         min-height: 100vh;
         background: #f8f7ff;
-        background-image:
-          radial-gradient(ellipse at 10% 20%, rgba(99,102,241,0.08) 0%, transparent 60%),
-          radial-gradient(ellipse at 90% 80%, rgba(251,113,133,0.07) 0%, transparent 60%);
+        background-image: radial-gradient(ellipse at 10% 20%, rgba(99,102,241,0.08) 0%, transparent 60%), radial-gradient(ellipse at 90% 80%, rgba(251,113,133,0.07) 0%, transparent 60%);
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        padding: 80px 16px 40px;
-        font-family: 'Sora', sans-serif;
+        padding: 80px 16px 40px; font-family: 'Sora', sans-serif;
       }
-      .branch-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 16px;
-        width: 100%;
-        max-width: 800px;
-      }
-      @media (max-width: 480px) {
-        .branch-grid {
-          grid-template-columns: 1fr;
-        }
-      }
+      .branch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; width: 100%; max-width: 800px; }
+      @media (max-width: 480px) { .branch-grid { grid-template-columns: 1fr; } }
       .screen-title { font-size: 28px; font-weight: 800; color: #1e1b4b; text-align: center; margin-bottom: 6px; }
-      .screen-sub   { font-size: 14px; color: #6b7280; text-align: center; margin-bottom: 32px; font-family: 'DM Sans', sans-serif; }
+      .screen-sub { font-size: 14px; color: #6b7280; text-align: center; margin-bottom: 32px; font-family: 'DM Sans', sans-serif; }
       @media (min-width: 640px) {
         .screen-title { font-size: 36px; }
         .screen-sub { font-size: 15px; }
         .branch-card .card-header { padding: 32px 28px 24px; gap: 14px; }
         .branch-card .card-footer { padding: 16px 28px; }
       }
-      .arrow-circle {
-        width: 28px; height: 28px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
+      .arrow-circle { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      /* OTP input */
+      .otp-input {
+        width: 48px; height: 56px; text-align: center; font-size: 22px; font-weight: 700;
+        border: 2px solid #d1d5db; border-radius: 10px; outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s; background: #fff; color: #1e1b4b;
       }
+      .otp-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+      @media (max-width: 380px) { .otp-input { width: 38px; height: 48px; font-size: 18px; } }
     `}</style>
-
     <div className="branch-screen-bg">
       <p className="screen-title">Choose Your Branch</p>
       <p className="screen-sub">Select the branch you're signing into</p>
-
       <div className="branch-grid">
         {BRANCHES.map((branch, i) => {
           const accent = BRANCH_ACCENTS[i % BRANCH_ACCENTS.length];
@@ -233,7 +207,6 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
                 className={`bg-gradient-to-r ${accent.bg}`}
                 style={{ height: 6 }}
               />
-
               <div className="card-header">
                 <div
                   className="branch-icon-wrap"
@@ -259,7 +232,6 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
                   <div className="branch-city">{branch.city}</div>
                 </div>
               </div>
-
               <div className="card-footer" style={{ color: accent.text }}>
                 <span
                   className="code-badge"
@@ -295,9 +267,71 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
   </>
 );
 
+// ── OTP Input Component ────────────────────────────────────────────────────
+const OtpInput = ({ value, onChange, length = 6 }) => {
+  const digits = value
+    .split("")
+    .concat(Array(length).fill(""))
+    .slice(0, length);
+
+  const handleChange = (index, e) => {
+    const val = e.target.value.replace(/\D/g, "").slice(-1);
+    const newDigits = [...digits];
+    newDigits[index] = val;
+    onChange(newDigits.join(""));
+    if (val && index < length - 1) {
+      document.getElementById(`otp-${index + 1}`)?.focus();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !digits[index] && index > 0) {
+      document.getElementById(`otp-${index - 1}`)?.focus();
+    }
+    if (e.key === "ArrowLeft" && index > 0)
+      document.getElementById(`otp-${index - 1}`)?.focus();
+    if (e.key === "ArrowRight" && index < length - 1)
+      document.getElementById(`otp-${index + 1}`)?.focus();
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, length);
+    onChange(pasted.padEnd(length, "").slice(0, length));
+    document
+      .getElementById(`otp-${Math.min(pasted.length, length - 1)}`)
+      ?.focus();
+  };
+
+  return (
+    <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
+      {digits.map((digit, i) => (
+        <input
+          key={i}
+          id={`otp-${i}`}
+          className="otp-input"
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={digit}
+          onChange={(e) => handleChange(i, e)}
+          onKeyDown={(e) => handleKeyDown(i, e)}
+          onPaste={handlePaste}
+          autoComplete="one-time-code"
+          autoFocus={i === 0}
+        />
+      ))}
+    </div>
+  );
+};
+
 // ── Main App ───────────────────────────────────────────────────────────────
 function App() {
-  const [step, setStep] = useState("branch"); // "branch" | "login" | "app"
+  // step: "branch" | "login" | "otp" | "app"
+  const [step, setStep] = useState("branch");
   const [selectedBranch, setSelectedBranch] = useState(null);
 
   const [email, setEmail] = useState("");
@@ -307,6 +341,15 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [loggedInUser, setLoggedInUser] = useState("");
+  // eslint-disable-next-line
+  const [jwtToken, setJwtToken] = useState("");
+
+  // OTP state
+  const [otpValue, setOtpValue] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [otpMessage, setOtpMessage] = useState("");
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [pendingUsername, setPendingUsername] = useState("");
 
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -320,11 +363,15 @@ function App() {
   useEffect(() => {
     const savedAuth = localStorage.getItem("isAuthenticated");
     const savedBranchCode = localStorage.getItem("branchCode");
+    const savedToken = localStorage.getItem("jwt_token");
+    const savedUser = localStorage.getItem("loggedInUser");
 
-    if (savedAuth === "true" && savedBranchCode) {
+    if (savedAuth === "true" && savedBranchCode && savedToken) {
       const branch = BRANCHES.find((b) => b.code === savedBranchCode);
       if (branch) {
         setSelectedBranch(branch);
+        setJwtToken(savedToken);
+        setLoggedInUser(savedUser || "");
         setStep("app");
         fetchProducts();
       }
@@ -342,33 +389,118 @@ function App() {
     setStep("login");
   };
 
-  const handleLogin = () => {
+  // ── Step 1: POST /login ────────────────────────────────────────────────
+  const handleLogin = async () => {
     setLoginError("");
     setIsLoading(true);
 
-    setTimeout(() => {
-      const { usernames, password: validPassword } = getCredsForBranch(
-        selectedBranch.code,
-      );
-      const isValid =
-        usernames.includes(email.trim()) && password === validPassword;
+    try {
+      const passwordHash = await sha256(password);
+      const deviceToken = generateDeviceToken();
 
-      if (isValid) {
-        setLoggedInUser(email.trim());
-        setStep("app");
-        if (rememberMe) {
-          localStorage.setItem("isAuthenticated", "true");
-          localStorage.setItem("branchCode", selectedBranch.code);
-        } else {
-          localStorage.removeItem("isAuthenticated");
-          localStorage.removeItem("branchCode");
-        }
-        fetchProducts();
+      const response = await fetch(
+        "https://n8n.automate.ourdept.com/webhook/mli/bangalore/login",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: email.trim(),
+            password_hash: passwordHash,
+            device_token: deviceToken,
+          }),
+        },
+      );
+
+      const result = await response.json();
+      const token =
+        response.headers.get("Jwt_token") ||
+        response.headers.get("jwt_token") ||
+        "";
+
+      if (result.status === "success" && token) {
+        // Trusted device — skip OTP
+        finalizeLogin(email.trim(), token);
+      } else if (result.status === "otp_required") {
+        // Need OTP verification
+        setPendingUsername(email.trim());
+        setOtpMessage(
+          result.message ||
+            "A one-time code has been sent to your administrator. Please enter it to continue.",
+        );
+        setOtpValue("");
+        setOtpError("");
+        setStep("otp");
       } else {
-        setLoginError("Invalid username or password");
+        setLoginError(result.message || "Invalid username or password.");
       }
+    } catch (err) {
+      console.error("Login error:", err);
+      setLoginError("Network error. Please check your connection.");
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
+  };
+
+  // ── Step 2: POST /verify-otp ───────────────────────────────────────────
+  const handleVerifyOtp = async () => {
+    if (otpValue.replace(/\s/g, "").length < 6) {
+      setOtpError("Please enter the complete 6-digit code.");
+      return;
+    }
+
+    setOtpError("");
+    setIsVerifyingOtp(true);
+
+    try {
+      const response = await fetch(
+        "https://n8n.automate.ourdept.com/webhook/mli/bangalore/verify-otp",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: pendingUsername,
+            otp_code: otpValue,
+          }),
+        },
+      );
+
+      const result = await response.json();
+      const token =
+        response.headers.get("Jwt_token") ||
+        response.headers.get("jwt_token") ||
+        "";
+
+      if ((result.status === "success" || response.ok) && token) {
+        finalizeLogin(pendingUsername, token);
+      } else {
+        setOtpError(result.message || "Invalid OTP. Please try again.");
+      }
+    } catch (err) {
+      console.error("OTP verification error:", err);
+      setOtpError("Network error. Please check your connection.");
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const finalizeLogin = (username, token) => {
+    setLoggedInUser(username);
+    setJwtToken(token);
+    setStep("app");
+
+    if (rememberMe) {
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("branchCode", selectedBranch.code);
+      localStorage.setItem("jwt_token", token);
+      localStorage.setItem("loggedInUser", username);
+    } else {
+      localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("branchCode");
+      localStorage.removeItem("jwt_token");
+      localStorage.removeItem("loggedInUser");
+    }
+
+    fetchProducts();
   };
 
   const handleLogout = () => {
@@ -378,6 +510,11 @@ function App() {
     setPassword("");
     setRememberMe(false);
     setLoggedInUser("");
+    setJwtToken("");
+    setPendingUsername("");
+    setOtpValue("");
+    setOtpError("");
+    setOtpMessage("");
     setSelectedProduct(null);
     setProducts([]);
     setFields([]);
@@ -385,6 +522,8 @@ function App() {
     setCalculation(null);
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("branchCode");
+    localStorage.removeItem("jwt_token");
+    localStorage.removeItem("loggedInUser");
   };
 
   const handleKeyPress = (e) => {
@@ -462,7 +601,6 @@ function App() {
             value === "" || value === null || value === undefined ? "0" : value;
         }
       });
-
       values["ID"] = userId;
 
       const response = await fetch(
@@ -486,27 +624,21 @@ function App() {
 
       const result = await response.json();
 
-      if (!result || typeof result !== "object") {
+      if (!result || typeof result !== "object")
         throw new Error("Invalid response from server");
-      }
-
-      if (!result["Net Total"]) {
+      if (!result["Net Total"])
         throw new Error("Calculation failed: Net Total missing");
-      }
 
       setCalculation(result);
     } catch (error) {
       console.error("Calculation error:", error);
-
-      if (error.message.includes("required")) {
+      if (error.message.includes("required"))
         setCalculationError(error.message);
-      } else if (error.message.includes("Failed to fetch")) {
+      else if (error.message.includes("Failed to fetch"))
         setCalculationError("Network error. Check your connection.");
-      } else if (error.message.includes("Server error")) {
+      else if (error.message.includes("Server error"))
         setCalculationError("Server issue. Please try again later.");
-      } else {
-        setCalculationError("Something went wrong. Please try again.");
-      }
+      else setCalculationError("Something went wrong. Please try again.");
     } finally {
       setCalculating(false);
     }
@@ -522,7 +654,7 @@ function App() {
 
   // ── Render ───────────────────────────────────────────────────────────────
 
-  if (initialLoading) {
+  if (initialLoading)
     return (
       <>
         <Logo />
@@ -530,18 +662,15 @@ function App() {
         <Watermark text="HRLabs" />
       </>
     );
-  }
-
-  if (step === "branch") {
+  if (step === "branch")
     return <BranchSelectionScreen onSelectBranch={handleBranchSelect} />;
-  }
 
+  // ── Login Screen ──────────────────────────────────────────────────────────
   if (step === "login") {
     return (
       <>
         <Logo />
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-          {/* Push card down enough to clear the logo on mobile */}
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 sm:p-8 mt-16 sm:mt-0">
             <div className="flex items-center justify-between mb-6">
               <button
@@ -554,14 +683,12 @@ function App() {
                 📍 {selectedBranch?.label}
               </span>
             </div>
-
             <div className="text-center mb-6 sm:mb-8">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
                 Welcome Back
               </h1>
               <p className="text-gray-600 text-sm">Sign in to your account</p>
             </div>
-
             <div className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -573,11 +700,10 @@ function App() {
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyPress={handleKeyPress}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-sm"
-                  placeholder="mli@gmail.com"
+                  placeholder="Enter your username"
                   autoComplete="username"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Password
@@ -592,7 +718,6 @@ function App() {
                   autoComplete="current-password"
                 />
               </div>
-
               <div className="flex items-center">
                 <input
                   id="rememberMe"
@@ -608,13 +733,11 @@ function App() {
                   Remember me
                 </label>
               </div>
-
               {loginError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                   {loginError}
                 </div>
               )}
-
               <button
                 onClick={handleLogin}
                 disabled={isLoading}
@@ -622,6 +745,95 @@ function App() {
               >
                 {isLoading ? "Signing in..." : "Sign In"}
               </button>
+            </div>
+          </div>
+        </div>
+        <Watermark text="HRLabs" />
+      </>
+    );
+  }
+
+  // ── OTP Verification Screen ───────────────────────────────────────────────
+  if (step === "otp") {
+    return (
+      <>
+        <Logo />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 sm:p-8 mt-16 sm:mt-0">
+            <div className="flex items-center justify-between mb-6">
+              <button
+                onClick={() => {
+                  setStep("login");
+                  setOtpValue("");
+                  setOtpError("");
+                }}
+                className="text-indigo-600 hover:text-indigo-700 flex items-center gap-1 text-sm"
+              >
+                ← Back to Login
+              </button>
+              <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs sm:text-sm font-semibold">
+                📍 {selectedBranch?.label}
+              </span>
+            </div>
+
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#6366f1"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <polyline points="9 12 11 14 15 10" />
+                </svg>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
+                Verify Your Identity
+              </h1>
+              <p className="text-gray-500 text-sm max-w-xs mx-auto">
+                {otpMessage}
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <OtpInput value={otpValue} onChange={setOtpValue} length={6} />
+
+              {otpError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm text-center">
+                  {otpError}
+                </div>
+              )}
+
+              <button
+                onClick={handleVerifyOtp}
+                disabled={isVerifyingOtp || otpValue.length < 6}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center gap-2"
+              >
+                {isVerifyingOtp ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    Verifying...
+                  </>
+                ) : (
+                  "Verify & Sign In"
+                )}
+              </button>
+
+              <p className="text-center text-xs text-gray-400">
+                Didn't receive a code?{" "}
+                <button
+                  onClick={handleLogin}
+                  className="text-indigo-500 hover:text-indigo-700 font-medium underline underline-offset-2"
+                >
+                  Resend
+                </button>
+              </p>
             </div>
           </div>
         </div>
@@ -653,7 +865,6 @@ function App() {
                 </span>
               </div>
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {products.map((product) => (
                 <div
@@ -700,11 +911,6 @@ function App() {
           >
             ← Back to Products
           </button>
-
-          {/*
-           * On mobile:  stacked vertically (flex-col)
-           * On desktop: side by side (lg:flex-row)
-           */}
           <div className="flex flex-col lg:flex-row gap-5 lg:gap-6 items-start">
             {/* LEFT: Form */}
             <div className="bg-white rounded-xl shadow-lg p-5 sm:p-8 w-full lg:flex-1 min-w-0">
@@ -721,7 +927,6 @@ function App() {
                   {selectedProduct["Products Code"]}
                 </span>
               </div>
-
               {loadingFields ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto" />
@@ -780,13 +985,11 @@ function App() {
                       </div>
                     ))}
                   </div>
-
                   {calculationError && (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
                       {calculationError}
                     </div>
                   )}
-
                   <button
                     onClick={handleCalculatePrice}
                     disabled={calculating}
@@ -805,15 +1008,13 @@ function App() {
               )}
             </div>
 
-            {/* RIGHT: Quotation Result — full width on mobile, fixed sidebar on desktop */}
+            {/* RIGHT: Quotation Result */}
             <div className="w-full lg:w-80 lg:flex-shrink-0">
               {calculation ? (
                 <div className="bg-white rounded-xl shadow-lg p-5 sm:p-6 lg:sticky lg:top-24">
                   <h3 className="text-lg font-bold text-gray-800 mb-4">
                     Quotation Result
                   </h3>
-
-                  {/* Net Total highlight */}
                   <div className="bg-indigo-50 border-2 border-indigo-200 rounded-lg p-4 mb-5">
                     <p className="text-sm font-medium text-gray-500 mb-1">
                       Net Total
@@ -822,8 +1023,6 @@ function App() {
                       ₹{calculation["Net Total"]?.toFixed(2)}
                     </p>
                   </div>
-
-                  {/* Breakdown */}
                   <div className="space-y-2">
                     {Object.entries(calculation).map(([key, value]) => {
                       if (
@@ -851,7 +1050,6 @@ function App() {
                   </div>
                 </div>
               ) : (
-                /* Placeholder when no result yet */
                 <div className="bg-white rounded-xl shadow-lg p-5 sm:p-6 lg:sticky lg:top-24 border-2 border-dashed border-gray-200">
                   <div className="text-center py-6">
                     <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-3">
