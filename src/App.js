@@ -524,7 +524,7 @@ function App() {
       // Log everything so you can see what's available
       console.log("OTP verify status:", response.status);
       console.log("OTP verify body:", result);
-      console.log("OTP verify headers jwt:", response.headers.get("Jwt_token"));
+      console.log("OTP verify headers jwt:", response.headers.get("jwt_token"));
       console.log(
         "OTP verify headers device:",
         response.headers.get("Device_Token"),
