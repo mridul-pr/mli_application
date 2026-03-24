@@ -194,14 +194,26 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
         .branch-card .card-footer { padding: 16px 28px; }
       }
       .arrow-circle { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-      /* OTP input */
-      .otp-input {
-        width: 48px; height: 56px; text-align: center; font-size: 22px; font-weight: 700;
-        border: 2px solid #d1d5db; border-radius: 10px; outline: none;
-        transition: border-color 0.15s, box-shadow 0.15s; background: #fff; color: #1e1b4b;
-      }
-      .otp-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-      @media (max-width: 380px) { .otp-input { width: 38px; height: 48px; font-size: 18px; } }
+.otp-input {
+  flex: 1;
+  min-width: 0;
+  aspect-ratio: 1 / 1.1;
+  max-width: 52px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  background: #fff;
+  color: #1e1b4b;
+  padding: 0;
+}
+.otp-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
     `}</style>
     <div className="branch-screen-bg">
       <p className="screen-title">Choose Your Branch</p>
@@ -326,7 +338,7 @@ const OtpInput = ({ value, onChange, length = 6 }) => {
   };
 
   return (
-    <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
+    <div style={{ display: "flex", gap: "6px", width: "100%" }}>
       {digits.map((digit, i) => (
         <input
           key={i}
@@ -346,7 +358,6 @@ const OtpInput = ({ value, onChange, length = 6 }) => {
     </div>
   );
 };
-
 // ── Main App ───────────────────────────────────────────────────────────────
 function App() {
   // step: "branch" | "login" | "otp" | "app"
@@ -365,7 +376,9 @@ function App() {
     full_name: "",
     role: "",
   });
+  // eslint-disable-next-line
   const [jwtToken, setJwtToken] = useState("");
+  // eslint-disable-next-line
   const [deviceToken, setDeviceToken] = useState("");
 
   // OTP state
@@ -484,7 +497,6 @@ function App() {
     }
   };
 
-  // ── Step 2: POST /verify-otp ───────────────────────────────────────────
   const handleVerifyOtp = async () => {
     if (otpValue.replace(/\s/g, "").length < 6) {
       setOtpError("Please enter the complete 6-digit code.");
@@ -508,24 +520,50 @@ function App() {
       );
 
       const result = await response.json();
+
+      // Log everything so you can see what's available
+      console.log("OTP verify status:", response.status);
+      console.log("OTP verify body:", result);
+      console.log("OTP verify headers jwt:", response.headers.get("Jwt_token"));
+      console.log(
+        "OTP verify headers device:",
+        response.headers.get("Device_Token"),
+      );
+
+      // Read token from header first, fall back to every likely body field
       const token =
         response.headers.get("Jwt_token") ||
         response.headers.get("jwt_token") ||
+        response.headers.get("JWT_TOKEN") ||
+        result.jwt_token ||
+        result.Jwt_token ||
+        result.JWT_TOKEN ||
+        result.token ||
+        result.access_token ||
         "";
-      // Device token comes from OTP verification response
+
       const devToken =
         response.headers.get("Device_Token") ||
         response.headers.get("device_token") ||
+        result.device_token ||
+        result.Device_Token ||
         "";
 
-      if ((result.status === "success" || response.ok) && token) {
-        // Merge any updated profile fields from OTP response
+      // Consider it success if status is ok OR body says success — even if token is missing for now
+      const isSuccess = result.status === "success" || response.ok;
+
+      if (isSuccess && token) {
         const userProfile = {
           username: result.username || loggedInUser.username || pendingUsername,
           full_name: result.full_name || loggedInUser.full_name || "",
           role: result.role || loggedInUser.role || "",
         };
         finalizeLogin(userProfile, token, devToken);
+      } else if (isSuccess && !token) {
+        // 200 OK but no token found anywhere — show what we got
+        setOtpError(
+          `Verified OK but no token found. Check console for response details.`,
+        );
       } else {
         setOtpError(result.message || "Invalid OTP. Please try again.");
       }
