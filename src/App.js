@@ -192,26 +192,7 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
         .branch-card .card-footer { padding: 16px 28px; }
       }
       .arrow-circle { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-      .otp-input {
-        flex: 1;
-        min-width: 0;
-        aspect-ratio: 1 / 1.1;
-        max-width: 52px;
-        text-align: center;
-        font-size: 20px;
-        font-weight: 700;
-        border: 2px solid #d1d5db;
-        border-radius: 10px;
-        outline: none;
-        transition: border-color 0.15s, box-shadow 0.15s;
-        background: #fff;
-        color: #1e1b4b;
-        padding: 0;
-      }
-      .otp-input:focus {
-        border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-      }
+
     `}</style>
     <div className="branch-screen-bg">
       <p className="screen-title">Choose Your Branch</p>
@@ -336,12 +317,12 @@ const OtpInput = ({ value, onChange, length = 6 }) => {
   };
 
   return (
-    <div style={{ display: "flex", gap: "6px", width: "100%" }}>
+    <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
+      {" "}
       {digits.map((digit, i) => (
         <input
           key={i}
           id={`otp-${i}`}
-          className="otp-input"
           type="text"
           inputMode="numeric"
           maxLength={1}
@@ -351,6 +332,18 @@ const OtpInput = ({ value, onChange, length = 6 }) => {
           onPaste={handlePaste}
           autoComplete="one-time-code"
           autoFocus={i === 0}
+          style={{
+            width: "32px",
+            height: "38px",
+            textAlign: "center",
+            fontSize: "14px",
+            fontWeight: "600",
+            border: "1.5px solid #d1d5db",
+            borderRadius: "6px",
+            outline: "none",
+            padding: "0",
+            flex: "none", // 🔥 prevents stretching
+          }}
         />
       ))}
     </div>
