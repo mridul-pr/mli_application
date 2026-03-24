@@ -12,19 +12,6 @@ async function sha256(message) {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// ── Utility: generate a persistent UUID v4 device token ───
-function generateDeviceToken() {
-  const stored = localStorage.getItem("device_token");
-  if (stored) return stored;
-  const uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-  localStorage.setItem("device_token", uuid);
-  return uuid;
-}
-
 // ── UI Components ─────────────────────────────────────────────────────────
 const Logo = () => (
   <div style={{ position: "fixed", top: "12px", left: "12px", zIndex: 1000 }}>
@@ -73,31 +60,63 @@ const LoadingScreen = () => (
   </div>
 );
 
-const LogoutButton = ({ onLogout }) => (
-  <div style={{ position: "fixed", top: "12px", right: "12px", zIndex: 1000 }}>
-    <button
-      onClick={onLogout}
-      className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition duration-200 flex items-center gap-1 shadow-md text-sm"
+// ── User Avatar / Info Badge ───────────────────────────────────────────────
+const UserBadge = ({ fullName, role, onLogout }) => {
+  const initials = fullName
+    ? fullName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "?";
+
+  return (
+    <div
+      style={{ position: "fixed", top: "12px", right: "12px", zIndex: 1000 }}
+      className="flex items-center gap-2"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+      {/* User info pill */}
+      <div className="hidden sm:flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
+        <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+          {initials}
+        </div>
+        <div className="leading-tight">
+          <p className="text-xs font-semibold text-gray-800 max-w-[120px] truncate">
+            {fullName || "User"}
+          </p>
+          {role && (
+            <p className="text-[10px] text-indigo-500 font-medium capitalize">
+              {role}
+            </p>
+          )}
+        </div>
+      </div>
+      {/* Logout button */}
+      <button
+        onClick={onLogout}
+        className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition duration-200 flex items-center gap-1 shadow-md text-sm"
       >
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-        <polyline points="16 17 21 12 16 7" />
-        <line x1="21" y1="12" x2="9" y2="12" />
-      </svg>
-      <span className="hidden sm:inline">Logout</span>
-    </button>
-  </div>
-);
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        <span className="hidden sm:inline">Logout</span>
+      </button>
+    </div>
+  );
+};
 
 // ── Branch accent colors ────────────────────────────────────────────────────
 const BRANCH_ACCENTS = [
@@ -336,13 +355,18 @@ function App() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [loggedInUser, setLoggedInUser] = useState("");
-  // eslint-disable-next-line
+
+  // User profile
+  const [loggedInUser, setLoggedInUser] = useState({
+    username: "",
+    full_name: "",
+    role: "",
+  });
   const [jwtToken, setJwtToken] = useState("");
+  const [deviceToken, setDeviceToken] = useState("");
 
   // OTP state
   const [otpValue, setOtpValue] = useState("");
@@ -360,18 +384,27 @@ function App() {
   const [calculating, setCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState("");
 
+  // ── Restore session from localStorage on mount ─────────────────────────
   useEffect(() => {
     const savedAuth = localStorage.getItem("isAuthenticated");
     const savedBranchCode = localStorage.getItem("branchCode");
     const savedToken = localStorage.getItem("jwt_token");
-    const savedUser = localStorage.getItem("loggedInUser");
+    const savedDeviceToken = localStorage.getItem("device_token");
+    const savedUsername = localStorage.getItem("username");
+    const savedFullName = localStorage.getItem("full_name");
+    const savedRole = localStorage.getItem("role");
 
     if (savedAuth === "true" && savedBranchCode && savedToken) {
       const branch = BRANCHES.find((b) => b.code === savedBranchCode);
       if (branch) {
         setSelectedBranch(branch);
         setJwtToken(savedToken);
-        setLoggedInUser(savedUser || "");
+        if (savedDeviceToken) setDeviceToken(savedDeviceToken);
+        setLoggedInUser({
+          username: savedUsername || "",
+          full_name: savedFullName || "",
+          role: savedRole || "",
+        });
         setStep("app");
         fetchProducts();
       }
@@ -396,7 +429,6 @@ function App() {
 
     try {
       const passwordHash = await sha256(password);
-      const deviceToken = generateDeviceToken();
 
       const response = await fetch(
         "https://n8n.automate.ourdept.com/webhook/mli/bangalore/login",
@@ -406,7 +438,6 @@ function App() {
           body: JSON.stringify({
             username: email.trim(),
             password_hash: passwordHash,
-            device_token: deviceToken,
           }),
         },
       );
@@ -416,13 +447,25 @@ function App() {
         response.headers.get("Jwt_token") ||
         response.headers.get("jwt_token") ||
         "";
+      const devToken =
+        response.headers.get("Device_Token") ||
+        response.headers.get("device_token") ||
+        "";
+
+      // Build user profile from response body
+      const userProfile = {
+        username: result.username || email.trim(),
+        full_name: result.full_name || "",
+        role: result.role || "",
+      };
 
       if (result.status === "success" && token) {
         // Trusted device — skip OTP
-        finalizeLogin(email.trim(), token);
+        finalizeLogin(userProfile, token, devToken);
       } else if (result.status === "otp_required") {
-        // Need OTP verification
-        setPendingUsername(email.trim());
+        // Need OTP verification — save partial user info
+        setPendingUsername(result.username || email.trim());
+        setLoggedInUser(userProfile);
         setOtpMessage(
           result.message ||
             "A one-time code has been sent to your administrator. Please enter it to continue.",
@@ -469,9 +512,20 @@ function App() {
         response.headers.get("Jwt_token") ||
         response.headers.get("jwt_token") ||
         "";
+      // Device token comes from OTP verification response
+      const devToken =
+        response.headers.get("Device_Token") ||
+        response.headers.get("device_token") ||
+        "";
 
       if ((result.status === "success" || response.ok) && token) {
-        finalizeLogin(pendingUsername, token);
+        // Merge any updated profile fields from OTP response
+        const userProfile = {
+          username: result.username || loggedInUser.username || pendingUsername,
+          full_name: result.full_name || loggedInUser.full_name || "",
+          role: result.role || loggedInUser.role || "",
+        };
+        finalizeLogin(userProfile, token, devToken);
       } else {
         setOtpError(result.message || "Invalid OTP. Please try again.");
       }
@@ -483,22 +537,21 @@ function App() {
     }
   };
 
-  const finalizeLogin = (username, token) => {
-    setLoggedInUser(username);
+  // ── Persist session — always save, never remove until logout ──────────
+  const finalizeLogin = (userProfile, token, devToken) => {
+    setLoggedInUser(userProfile);
     setJwtToken(token);
+    if (devToken) setDeviceToken(devToken);
     setStep("app");
 
-    if (rememberMe) {
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("branchCode", selectedBranch.code);
-      localStorage.setItem("jwt_token", token);
-      localStorage.setItem("loggedInUser", username);
-    } else {
-      localStorage.removeItem("isAuthenticated");
-      localStorage.removeItem("branchCode");
-      localStorage.removeItem("jwt_token");
-      localStorage.removeItem("loggedInUser");
-    }
+    // Always persist — session survives page reload until explicit logout
+    localStorage.setItem("isAuthenticated", "true");
+    localStorage.setItem("branchCode", selectedBranch.code);
+    localStorage.setItem("jwt_token", token);
+    if (devToken) localStorage.setItem("device_token", devToken);
+    localStorage.setItem("username", userProfile.username);
+    localStorage.setItem("full_name", userProfile.full_name);
+    localStorage.setItem("role", userProfile.role);
 
     fetchProducts();
   };
@@ -508,9 +561,9 @@ function App() {
     setSelectedBranch(null);
     setEmail("");
     setPassword("");
-    setRememberMe(false);
-    setLoggedInUser("");
+    setLoggedInUser({ username: "", full_name: "", role: "" });
     setJwtToken("");
+    setDeviceToken("");
     setPendingUsername("");
     setOtpValue("");
     setOtpError("");
@@ -520,10 +573,15 @@ function App() {
     setFields([]);
     setFormValues({});
     setCalculation(null);
+
+    // Only clear on explicit logout
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("branchCode");
     localStorage.removeItem("jwt_token");
-    localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("device_token");
+    localStorage.removeItem("username");
+    localStorage.removeItem("full_name");
+    localStorage.removeItem("role");
   };
 
   const handleKeyPress = (e) => {
@@ -588,20 +646,14 @@ function App() {
     setCalculation(null);
 
     try {
-      const userIdMatch = loggedInUser.match(/\d+$/);
-      const userId = userIdMatch ? userIdMatch[0] : "1";
-
+      // Build values — ID field removed entirely
       const values = {};
       fields.forEach((field) => {
-        if (field.field === "ID") {
-          values["ID"] = userId;
-        } else {
-          const value = formValues[field.field];
-          values[field.field] =
-            value === "" || value === null || value === undefined ? "0" : value;
-        }
+        if (field.field === "ID") return; // skip ID
+        const value = formValues[field.field];
+        values[field.field] =
+          value === "" || value === null || value === undefined ? "0" : value;
       });
-      values["ID"] = userId;
 
       const response = await fetch(
         "https://n8n.automate.ourdept.com/webhook/mli/banglore/product/price",
@@ -718,21 +770,6 @@ function App() {
                   autoComplete="current-password"
                 />
               </div>
-              <div className="flex items-center">
-                <input
-                  id="rememberMe"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
-                />
-                <label
-                  htmlFor="rememberMe"
-                  className="ml-2 block text-sm text-gray-700 cursor-pointer"
-                >
-                  Remember me
-                </label>
-              </div>
               {loginError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                   {loginError}
@@ -847,14 +884,20 @@ function App() {
     return (
       <>
         <Logo />
-        <LogoutButton onLogout={handleLogout} />
+        <UserBadge
+          fullName={loggedInUser.full_name}
+          role={loggedInUser.role}
+          onLogout={handleLogout}
+        />
         <div className="min-h-screen bg-gray-50 px-4 py-6 sm:p-8">
           <div className="max-w-6xl mx-auto" style={{ marginTop: "72px" }}>
             <div className="mb-6 sm:mb-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1">
-                    Select a Product
+                    {loggedInUser.full_name
+                      ? `Hello, ${loggedInUser.full_name.split(" ")[0]} 👋`
+                      : "Select a Product"}
                   </h1>
                   <p className="text-gray-600 text-sm sm:text-base">
                     Choose a product to get a quotation
@@ -902,7 +945,11 @@ function App() {
   return (
     <>
       <Logo />
-      <LogoutButton onLogout={handleLogout} />
+      <UserBadge
+        fullName={loggedInUser.full_name}
+        role={loggedInUser.role}
+        onLogout={handleLogout}
+      />
       <div className="min-h-screen bg-gray-50 px-4 py-6 sm:p-8">
         <div className="max-w-7xl mx-auto" style={{ marginTop: "72px" }}>
           <button
@@ -937,53 +984,55 @@ function App() {
               ) : (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                    {fields.map((field, index) => (
-                      <div key={index}>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {field.field}
-                        </label>
-                        {field.value && field.value.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {field.value.map((option, optIndex) => (
-                              <button
-                                key={optIndex}
-                                type="button"
-                                onClick={() =>
-                                  handleFieldChange(
-                                    field.field,
-                                    formValues[field.field] === option
-                                      ? ""
-                                      : option,
-                                  )
-                                }
-                                className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-150
-                                  ${
-                                    formValues[field.field] === option
-                                      ? "bg-indigo-600 border-indigo-600 text-white"
-                                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                                  }`}
-                              >
-                                {option}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <input
-                            type={
-                              field.field.toLowerCase() === "misc"
-                                ? "text"
-                                : "number"
-                            }
-                            value={formValues[field.field] || ""}
-                            onChange={(e) =>
-                              handleFieldChange(field.field, e.target.value)
-                            }
-                            placeholder={`Enter ${field.field}`}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
-                          />
-                        )}
-                      </div>
-                    ))}
+                    {fields
+                      .filter((field) => field.field !== "ID")
+                      .map((field, index) => (
+                        <div key={index}>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {field.field}
+                          </label>
+                          {field.value && field.value.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {field.value.map((option, optIndex) => (
+                                <button
+                                  key={optIndex}
+                                  type="button"
+                                  onClick={() =>
+                                    handleFieldChange(
+                                      field.field,
+                                      formValues[field.field] === option
+                                        ? ""
+                                        : option,
+                                    )
+                                  }
+                                  className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-150
+                                    ${
+                                      formValues[field.field] === option
+                                        ? "bg-indigo-600 border-indigo-600 text-white"
+                                        : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                                    }`}
+                                >
+                                  {option}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <input
+                              type={
+                                field.field.toLowerCase() === "misc"
+                                  ? "text"
+                                  : "number"
+                              }
+                              value={formValues[field.field] || ""}
+                              onChange={(e) =>
+                                handleFieldChange(field.field, e.target.value)
+                              }
+                              placeholder={`Enter ${field.field}`}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
+                            />
+                          )}
+                        </div>
+                      ))}
                   </div>
                   {calculationError && (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
