@@ -70,7 +70,7 @@ const Logo = ({ onClick }) => (
   </div>
 );
 
-// Watermark — bottom-right, cleaner style
+// Watermark — bottom-right, cleaner style, HR Labs same weight as "Powered by"
 const Watermark = () => (
   <div
     style={{
@@ -100,8 +100,8 @@ const Watermark = () => (
       style={{
         fontSize: "14px",
         color: "#111",
-        fontWeight: 700,
-        letterSpacing: "0.04em",
+        fontWeight: 400,
+        letterSpacing: "0.01em",
       }}
     >
       HR Labs
@@ -121,7 +121,7 @@ const LoadingScreen = () => (
   </div>
 );
 
-// Navbar — shows Hello {name} + logout; no branch badge
+// Navbar — Hello {name} centered, logout on right
 const Navbar = ({ fullName, role, onLogout }) => {
   const initials = fullName
     ? fullName
@@ -134,11 +134,18 @@ const Navbar = ({ fullName, role, onLogout }) => {
   const firstName = fullName ? fullName.split(" ")[0] : "there";
 
   return (
-    <div
-      style={{ position: "fixed", top: "12px", right: "12px", zIndex: 1000 }}
-      className="flex items-center gap-2"
-    >
-      <div className="hidden sm:flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
+    <>
+      {/* Centered greeting */}
+      <div
+        style={{
+          position: "fixed",
+          top: "12px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 1000,
+        }}
+        className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-1.5 shadow-sm"
+      >
         <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
           {initials}
         </div>
@@ -153,28 +160,34 @@ const Navbar = ({ fullName, role, onLogout }) => {
           )}
         </div>
       </div>
-      <button
-        onClick={onLogout}
-        className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition duration-200 flex items-center gap-1 shadow-md text-sm"
+
+      {/* Logout on right */}
+      <div
+        style={{ position: "fixed", top: "12px", right: "12px", zIndex: 1000 }}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+        <button
+          onClick={onLogout}
+          className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition duration-200 flex items-center gap-1 shadow-md text-sm"
         >
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-          <polyline points="16 17 21 12 16 7" />
-          <line x1="21" y1="12" x2="9" y2="12" />
-        </svg>
-        <span className="hidden sm:inline">Logout</span>
-      </button>
-    </div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          <span className="hidden sm:inline">Logout</span>
+        </button>
+      </div>
+    </>
   );
 };
 
@@ -210,10 +223,9 @@ const BRANCH_ACCENTS = [
   },
 ];
 
-// ── Branch Selection Screen ────────────────────────────────
-const BranchSelectionScreen = ({ onSelectBranch }) => (
+// ── Branch Selection Screen — no navbar, big centered logo ─
+const BranchSelectionScreen = ({ onSelectBranch, logoSrc }) => (
   <>
-    <Logo />
     <style>{`
       @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500&display=swap');
       .branch-card { font-family:'Sora',sans-serif; cursor:pointer; border-radius:20px; overflow:hidden; border:2px solid transparent; background:white; box-shadow:0 4px 20px rgba(0,0,0,0.07); transition:transform 0.22s cubic-bezier(.34,1.56,.64,1),box-shadow 0.22s ease,border-color 0.18s ease; position:relative; }
@@ -224,7 +236,7 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
       .branch-label { font-size:20px; font-weight:800; color:#1e1b4b; line-height:1.2; }
       .branch-city { font-size:12px; font-weight:500; color:#6b7280; margin-top:2px; font-family:'DM Sans',sans-serif; }
       .code-badge { font-size:11px; font-weight:700; letter-spacing:0.08em; padding:3px 10px; border-radius:999px; text-transform:uppercase; }
-      .branch-screen-bg { min-height:100vh; background:#f8f7ff; background-image:radial-gradient(ellipse at 10% 20%,rgba(99,102,241,0.08) 0%,transparent 60%),radial-gradient(ellipse at 90% 80%,rgba(251,113,133,0.07) 0%,transparent 60%); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 16px 40px; font-family:'Sora',sans-serif; }
+      .branch-screen-bg { min-height:100vh; background:#f8f7ff; background-image:radial-gradient(ellipse at 10% 20%,rgba(99,102,241,0.08) 0%,transparent 60%),radial-gradient(ellipse at 90% 80%,rgba(251,113,133,0.07) 0%,transparent 60%); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 16px 40px; font-family:'Sora',sans-serif; }
       .branch-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; width:100%; max-width:800px; }
       @media (max-width:480px) { .branch-grid { grid-template-columns:1fr; } }
       .screen-title { font-size:28px; font-weight:800; color:#1e1b4b; text-align:center; margin-bottom:6px; }
@@ -233,6 +245,19 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
       .arrow-circle { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
     `}</style>
     <div className="branch-screen-bg">
+      {/* Big centered logo */}
+      <img
+        src={logo}
+        alt="MLI"
+        style={{
+          height: "90px",
+          width: "120px",
+          borderRadius: "16px",
+          objectFit: "cover",
+          marginBottom: "20px",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
+        }}
+      />
       <p className="screen-title">Choose Your Branch</p>
       <p className="screen-sub">Select the branch you're signing into</p>
       <div className="branch-grid">
@@ -405,7 +430,7 @@ function App() {
   const [otpValue, setOtpValue] = useState("");
   const [otpError, setOtpError] = useState("");
   const [otpMessage, setOtpMessage] = useState("");
-  const [otpResent, setOtpResent] = useState(false); // ← resend feedback
+  const [otpResent, setOtpResent] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [pendingUsername, setPendingUsername] = useState("");
 
@@ -571,7 +596,6 @@ function App() {
     setOtpValue("");
     await handleLogin();
     setOtpResent(true);
-    // Auto-hide the "sent!" banner after 4 seconds
     setTimeout(() => setOtpResent(false), 4000);
   };
 
@@ -937,7 +961,6 @@ function App() {
             <div className="space-y-6">
               <OtpInput value={otpValue} onChange={setOtpValue} length={6} />
 
-              {/* Resent success banner */}
               {otpResent && (
                 <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2.5 rounded-lg text-sm text-center flex items-center justify-center gap-2">
                   <svg
@@ -1023,17 +1046,19 @@ function App() {
                 >
                   <div className="p-5">
                     <div className="flex items-start justify-between mb-3 gap-2">
-                      <h3 className="text-base font-bold text-gray-800 leading-tight">
+                      {/* Increased product name font size */}
+                      <h3 className="text-lg font-bold text-gray-800 leading-tight">
                         {product["Products Name"]}
                       </h3>
-                      <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0">
+                      <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-sm font-semibold whitespace-nowrap flex-shrink-0">
                         {product["Products Code"]}
                       </span>
                     </div>
-                    <p className="text-gray-500 mb-4 text-xs leading-relaxed">
+                    {/* Increased description font size */}
+                    <p className="text-gray-500 mb-4 text-sm leading-relaxed">
                       {product.Description}
                     </p>
-                    <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg transition text-xs font-semibold">
+                    <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg transition text-sm font-semibold">
                       Select Product
                     </button>
                   </div>
@@ -1059,125 +1084,126 @@ function App() {
       />
       <div className="min-h-screen bg-gray-50 px-4 py-6 sm:p-8">
         <div className="max-w-7xl mx-auto" style={{ marginTop: "72px" }}>
-          {/* Back button — right-aligned, highlighted */}
-          <div className="flex justify-end mb-5">
-            <button
-              onClick={handleBackToProducts}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow transition duration-200"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-              Back to Products
-            </button>
-          </div>
-
           <div className="flex flex-col lg:flex-row gap-5 lg:gap-6 items-start">
-            {/* LEFT: Form */}
-            <div className="bg-white rounded-xl shadow-lg p-5 sm:p-8 w-full lg:flex-1 min-w-0">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5 sm:mb-6">
-                <div>
-                  <h2 className="text-xl sm:text-3xl font-bold text-gray-800">
-                    {selectedProduct["Products Name"]}
-                  </h2>
-                  <p className="text-gray-600 mt-1 text-sm">
-                    {selectedProduct.Description}
-                  </p>
-                </div>
-                <span className="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap self-start">
-                  {selectedProduct["Products Code"]}
-                </span>
-              </div>
-              {loadingFields ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto" />
-                  <p className="text-gray-600 mt-4 text-sm">
-                    Loading fields...
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                    {fields
-                      .filter((field) => field.field !== "ID")
-                      .map((field, index) => (
-                        <div key={index}>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {field.field}
-                          </label>
-                          {field.value && field.value.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                              {field.value.map((option, optIndex) => (
-                                <button
-                                  key={optIndex}
-                                  type="button"
-                                  onClick={() =>
-                                    handleFieldChange(
-                                      field.field,
-                                      formValues[field.field] === option
-                                        ? ""
-                                        : option,
-                                    )
-                                  }
-                                  className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-150 ${
-                                    formValues[field.field] === option
-                                      ? "bg-indigo-600 border-indigo-600 text-white"
-                                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                                  }`}
-                                >
-                                  {option}
-                                </button>
-                              ))}
-                            </div>
-                          ) : (
-                            <input
-                              type={
-                                field.field.toLowerCase() === "misc"
-                                  ? "text"
-                                  : "number"
-                              }
-                              value={formValues[field.field] || ""}
-                              onChange={(e) =>
-                                handleFieldChange(field.field, e.target.value)
-                              }
-                              placeholder={`Enter ${field.field}`}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
-                            />
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                  {calculationError && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
-                      {calculationError}
-                    </div>
-                  )}
-                  <button
-                    onClick={handleCalculatePrice}
-                    disabled={calculating}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+            {/* LEFT: Form — Back to Products button sits above the form card */}
+            <div className="w-full lg:flex-1 min-w-0">
+              <div className="flex justify-end mb-3">
+                <button
+                  onClick={handleBackToProducts}
+                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow transition duration-200"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
-                    {calculating ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                        Calculating...
-                      </>
-                    ) : (
-                      "Calculate Price"
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                  Back to Products
+                </button>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-5 sm:p-8">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5 sm:mb-6">
+                  <div>
+                    <h2 className="text-xl sm:text-3xl font-bold text-gray-800">
+                      {selectedProduct["Products Name"]}
+                    </h2>
+                    <p className="text-gray-600 mt-1 text-sm">
+                      {selectedProduct.Description}
+                    </p>
+                  </div>
+                  <span className="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap self-start">
+                    {selectedProduct["Products Code"]}
+                  </span>
+                </div>
+                {loadingFields ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto" />
+                    <p className="text-gray-600 mt-4 text-sm">
+                      Loading fields...
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                      {fields
+                        .filter((field) => field.field !== "ID")
+                        .map((field, index) => (
+                          <div key={index}>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {field.field}
+                            </label>
+                            {field.value && field.value.length > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                {field.value.map((option, optIndex) => (
+                                  <button
+                                    key={optIndex}
+                                    type="button"
+                                    onClick={() =>
+                                      handleFieldChange(
+                                        field.field,
+                                        formValues[field.field] === option
+                                          ? ""
+                                          : option,
+                                      )
+                                    }
+                                    className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-150 ${
+                                      formValues[field.field] === option
+                                        ? "bg-indigo-600 border-indigo-600 text-white"
+                                        : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                                    }`}
+                                  >
+                                    {option}
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <input
+                                type={
+                                  field.field.toLowerCase() === "misc"
+                                    ? "text"
+                                    : "number"
+                                }
+                                value={formValues[field.field] || ""}
+                                onChange={(e) =>
+                                  handleFieldChange(field.field, e.target.value)
+                                }
+                                placeholder={`Enter ${field.field}`}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
+                              />
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                    {calculationError && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
+                        {calculationError}
+                      </div>
                     )}
-                  </button>
-                </>
-              )}
+                    <button
+                      onClick={handleCalculatePrice}
+                      disabled={calculating}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                    >
+                      {calculating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                          Calculating...
+                        </>
+                      ) : (
+                        "Calculate Price"
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* RIGHT: Quotation Result */}
