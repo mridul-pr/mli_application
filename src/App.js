@@ -12,6 +12,20 @@ async function sha256(message) {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// ── Utility: get or create a permanent device token ────────
+function getOrCreateDeviceToken() {
+  const existing = localStorage.getItem("device_token");
+  if (existing) return existing;
+  // Generate a UUID v4
+  const uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+  localStorage.setItem("device_token", uuid);
+  return uuid;
+}
+
 // ── UI Components ─────────────────────────────────────────────────────────
 const Logo = () => (
   <div style={{ position: "fixed", top: "12px", left: "12px", zIndex: 1000 }}>
@@ -342,7 +356,7 @@ const OtpInput = ({ value, onChange, length = 6 }) => {
             borderRadius: "6px",
             outline: "none",
             padding: "0",
-            flex: "none", // 🔥 prevents stretching
+            flex: "none",
           }}
         />
       ))}
@@ -368,8 +382,6 @@ function App() {
   });
   // eslint-disable-next-line
   const [jwtToken, setJwtToken] = useState("");
-  // eslint-disable-next-line
-  const [deviceToken, setDeviceToken] = useState("");
 
   const [otpValue, setOtpValue] = useState("");
   const [otpError, setOtpError] = useState("");
@@ -386,18 +398,17 @@ function App() {
   const [calculating, setCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState("");
 
-  // ── Session expired — clear storage and redirect to login ──────────────
+  // ── Session expired — clear auth storage but keep device_token ────────
   const handleSessionExpired = useCallback(() => {
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("branchCode");
     localStorage.removeItem("jwt_token");
-    localStorage.removeItem("device_token");
     localStorage.removeItem("username");
     localStorage.removeItem("full_name");
     localStorage.removeItem("role");
+    // NOTE: device_token is intentionally NOT removed here
 
     setJwtToken("");
-    setDeviceToken("");
     setLoggedInUser({ username: "", full_name: "", role: "" });
     setSelectedProduct(null);
     setProducts([]);
@@ -408,7 +419,7 @@ function App() {
     setStep("login");
   }, []);
 
-  // ── Authenticated fetch wrapper — adds JWT header, catches 401 globally ─
+  // ── Authenticated fetch wrapper ────────────────────────────────────────
   const authFetch = useCallback(
     async (url, options = {}) => {
       const token = localStorage.getItem("jwt_token") || "";
@@ -429,10 +440,12 @@ function App() {
 
   // ── Restore session from localStorage on mount ─────────────────────────
   useEffect(() => {
+    // Ensure a device_token always exists (created once, lives forever)
+    getOrCreateDeviceToken();
+
     const savedAuth = localStorage.getItem("isAuthenticated");
     const savedBranchCode = localStorage.getItem("branchCode");
     const savedToken = localStorage.getItem("jwt_token");
-    const savedDeviceToken = localStorage.getItem("device_token");
     const savedUsername = localStorage.getItem("username");
     const savedFullName = localStorage.getItem("full_name");
     const savedRole = localStorage.getItem("role");
@@ -442,7 +455,6 @@ function App() {
       if (branch) {
         setSelectedBranch(branch);
         if (savedToken) setJwtToken(savedToken);
-        if (savedDeviceToken) setDeviceToken(savedDeviceToken);
         setLoggedInUser({
           username: savedUsername || "",
           full_name: savedFullName || "",
@@ -466,13 +478,15 @@ function App() {
     setStep("login");
   };
 
-  // ── Step 1: POST /login (no auth header needed) ────────────────────────
+  // ── Step 1: POST /login ────────────────────────────────────────────────
   const handleLogin = async () => {
     setLoginError("");
     setIsLoading(true);
 
     try {
       const passwordHash = await sha256(password);
+      // Always read the permanent device_token from localStorage
+      const deviceToken = getOrCreateDeviceToken();
 
       const response = await fetch(
         "https://n8n.automate.ourdept.com/webhook/mli/bangalore/login",
@@ -482,6 +496,7 @@ function App() {
           body: JSON.stringify({
             username: email.trim(),
             password_hash: passwordHash,
+            device_token: deviceToken,
           }),
         },
       );
@@ -494,11 +509,6 @@ function App() {
         result.jwt_token ||
         result.token ||
         "";
-      const devToken =
-        response.headers.get("device_token") ||
-        response.headers.get("Device_Token") ||
-        result.device_token ||
-        "";
 
       const userProfile = {
         username: result.username || email.trim(),
@@ -507,7 +517,8 @@ function App() {
       };
 
       if (result.status === "success" && token) {
-        finalizeLogin(userProfile, token, devToken);
+        // Trusted device — skip OTP entirely
+        finalizeLogin(userProfile, token);
       } else if (result.status === "otp_required") {
         setPendingUsername(result.username || email.trim());
         setLoggedInUser(userProfile);
@@ -529,7 +540,7 @@ function App() {
     }
   };
 
-  // ── Step 2: POST /verify-otp (no auth header needed) ──────────────────
+  // ── Step 2: POST /verify-otp ───────────────────────────────────────────
   const handleVerifyOtp = async () => {
     if (otpValue.replace(/\s/g, "").length < 6) {
       setOtpError("Please enter the complete 6-digit code.");
@@ -564,13 +575,6 @@ function App() {
         result.access_token ||
         "";
 
-      const devToken =
-        response.headers.get("device_token") ||
-        response.headers.get("Device_Token") ||
-        result.device_token ||
-        result.Device_Token ||
-        "";
-
       const isSuccess = result.status === "success" || response.ok;
 
       if (isSuccess && (token || result.username)) {
@@ -579,7 +583,7 @@ function App() {
           full_name: result.full_name || loggedInUser.full_name || "",
           role: result.role || loggedInUser.role || "",
         };
-        finalizeLogin(userProfile, token, devToken);
+        finalizeLogin(userProfile, token);
       } else {
         setOtpError(result.message || "Invalid OTP. Please try again.");
       }
@@ -591,17 +595,15 @@ function App() {
     }
   };
 
-  // ── Persist session — survives reload, cleared only on logout ──────────
-  const finalizeLogin = (userProfile, token, devToken) => {
+  // ── Persist session — device_token is never written/cleared here ───────
+  const finalizeLogin = (userProfile, token) => {
     setLoggedInUser(userProfile);
     setJwtToken(token);
-    if (devToken) setDeviceToken(devToken);
     setStep("app");
 
     localStorage.setItem("isAuthenticated", "true");
     localStorage.setItem("branchCode", selectedBranch.code);
     if (token) localStorage.setItem("jwt_token", token);
-    if (devToken) localStorage.setItem("device_token", devToken);
     localStorage.setItem("username", userProfile.username);
     localStorage.setItem("full_name", userProfile.full_name);
     localStorage.setItem("role", userProfile.role);
@@ -616,7 +618,6 @@ function App() {
     setPassword("");
     setLoggedInUser({ username: "", full_name: "", role: "" });
     setJwtToken("");
-    setDeviceToken("");
     setPendingUsername("");
     setOtpValue("");
     setOtpError("");
@@ -627,10 +628,10 @@ function App() {
     setFormValues({});
     setCalculation(null);
 
+    // Clear auth data — device_token is intentionally NOT removed
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("branchCode");
     localStorage.removeItem("jwt_token");
-    localStorage.removeItem("device_token");
     localStorage.removeItem("username");
     localStorage.removeItem("full_name");
     localStorage.removeItem("role");
