@@ -94,7 +94,7 @@ const Watermark = () => (
         letterSpacing: "0.01em",
       }}
     >
-      @Powered by
+      @Powered by -
     </span>
     <span
       style={{
