@@ -99,7 +99,7 @@ const Watermark = () => (
     <span
       style={{
         fontSize: "14px",
-        color: "#111",
+        color: "#555",
         fontWeight: 400,
         letterSpacing: "0.01em",
       }}
