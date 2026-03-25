@@ -25,6 +25,22 @@ function saveDeviceToken(branchCode, token) {
   localStorage.setItem(`device_token_${branchCode.toLowerCase()}`, token);
 }
 
+// ── Extract JWT from response (checks all common header/body locations) ──
+function extractToken(response, result) {
+  return (
+    response.headers.get("jwt_token") ||
+    response.headers.get("Jwt_token") ||
+    response.headers.get("JWT_TOKEN") ||
+    response.headers.get("authorization")?.replace("Bearer ", "") ||
+    result?.jwt_token ||
+    result?.Jwt_token ||
+    result?.token ||
+    result?.access_token ||
+    result?.JWT_token ||
+    ""
+  );
+}
+
 // ── UI Components ─────────────────────────────────────────────────────────
 const Logo = () => (
   <div style={{ position: "fixed", top: "12px", left: "12px", zIndex: 1000 }}>
@@ -405,7 +421,7 @@ function App() {
     localStorage.removeItem("username");
     localStorage.removeItem("full_name");
     localStorage.removeItem("role");
-    // NOTE: device_token is intentionally NOT removed here
+    // device_token_blr intentionally NOT removed
 
     setJwtToken("");
     setLoggedInUser({ username: "", full_name: "", role: "" });
@@ -481,13 +497,12 @@ function App() {
 
     try {
       const passwordHash = await sha256(password);
-      // Send the saved device token for this branch if available (skips OTP when server trusts it)
       const savedDeviceToken = getSavedDeviceToken(selectedBranch?.code);
 
       const loginBody = {
         username: email.trim(),
         password_hash: passwordHash,
-        ...(savedDeviceToken ? { device_token: savedDeviceToken } : {}),
+        ...(savedDeviceToken ? { blr_device_token: savedDeviceToken } : {}),
       };
 
       const response = await fetch(
@@ -501,12 +516,7 @@ function App() {
 
       const result = await response.json();
 
-      const token =
-        response.headers.get("jwt_token") ||
-        response.headers.get("Jwt_token") ||
-        result.jwt_token ||
-        result.token ||
-        "";
+      const token = extractToken(response, result);
 
       const userProfile = {
         username: result.username || email.trim(),
@@ -514,8 +524,13 @@ function App() {
         role: result.role || "",
       };
 
-      if (result.status === "success" && token) {
-        // Trusted device — skip OTP entirely
+      // Server returns user object directly (no status field) when device token is trusted,
+      // OR returns status:"success" explicitly. Either way, if we have a username back, it worked.
+      const isSuccess =
+        result.status === "success" ||
+        (!result.status && (result.username || result.full_name));
+
+      if (isSuccess && token) {
         finalizeLogin(userProfile, token);
       } else if (result.status === "otp_required") {
         setPendingUsername(result.username || email.trim());
@@ -563,18 +578,9 @@ function App() {
 
       const result = await response.json();
 
-      const token =
-        response.headers.get("jwt_token") ||
-        response.headers.get("Jwt_token") ||
-        response.headers.get("JWT_TOKEN") ||
-        result.jwt_token ||
-        result.Jwt_token ||
-        result.token ||
-        result.access_token ||
-        "";
+      const token = extractToken(response, result);
 
-      // Persist the branch-scoped device token returned by the server after OTP.
-      // The header name matches the branch code e.g. "blr_device_token" for BLR.
+      // Read and save the branch-scoped device token from response headers
       const branchKey = selectedBranch?.code?.toLowerCase(); // "blr"
       const branchDeviceToken =
         response.headers.get(`${branchKey}_device_token`) ||
@@ -605,7 +611,7 @@ function App() {
     }
   };
 
-  // ── Persist session — device_token is never written/cleared here ───────
+  // ── Persist session ────────────────────────────────────────────────────
   const finalizeLogin = (userProfile, token) => {
     setLoggedInUser(userProfile);
     setJwtToken(token);
@@ -638,7 +644,7 @@ function App() {
     setFormValues({});
     setCalculation(null);
 
-    // Clear auth data — device_token is intentionally NOT removed
+    // Clear auth data — device_token_blr intentionally NOT removed
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("branchCode");
     localStorage.removeItem("jwt_token");
