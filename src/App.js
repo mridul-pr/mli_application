@@ -12,20 +12,19 @@ async function sha256(message) {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// ── Utility: read the branch-scoped device token (set after first OTP) ──
+// ── Utility: branch-scoped device token ───────────────────
 function getSavedDeviceToken(branchCode) {
   if (!branchCode) return null;
   return (
     localStorage.getItem(`device_token_${branchCode.toLowerCase()}`) || null
   );
 }
-
 function saveDeviceToken(branchCode, token) {
   if (!branchCode || !token) return;
   localStorage.setItem(`device_token_${branchCode.toLowerCase()}`, token);
 }
 
-// ── Extract JWT from response (checks all common header/body locations) ──
+// ── Extract JWT from response ──────────────────────────────
 function extractToken(response, result) {
   return (
     response.headers.get("jwt_token") ||
@@ -41,9 +40,15 @@ function extractToken(response, result) {
   );
 }
 
-// ── UI Components ─────────────────────────────────────────────────────────
-const Logo = () => (
-  <div style={{ position: "fixed", top: "12px", left: "12px", zIndex: 1000 }}>
+// ── UI Components ──────────────────────────────────────────
+
+// Clickable logo — navigates to products (or stays static on non-app pages)
+const Logo = ({ onClick }) => (
+  <div
+    style={{ position: "fixed", top: "12px", left: "12px", zIndex: 1000 }}
+    onClick={onClick}
+    title={onClick ? "Back to Products" : undefined}
+  >
     <img
       src={logo}
       alt="MLI"
@@ -51,29 +56,56 @@ const Logo = () => (
         height: "60px",
         width: "80px",
         borderRadius: "12px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         objectFit: "cover",
+        cursor: onClick ? "pointer" : "default",
+        transition: "opacity 0.15s",
+      }}
+      onMouseEnter={(e) => {
+        if (onClick) e.currentTarget.style.opacity = "0.8";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.opacity = "1";
       }}
     />
   </div>
 );
 
-const Watermark = ({ text }) => (
+// Watermark — bottom-right, cleaner style
+const Watermark = () => (
   <div
     style={{
       position: "fixed",
-      bottom: "10px",
-      left: "50%",
-      transform: "translateX(-50%)",
-      opacity: 0.3,
-      fontSize: "11px",
-      color: "#666",
-      whiteSpace: "nowrap",
+      bottom: "24px",
+      right: "32px",
+      zIndex: 1000,
+      pointerEvents: "none",
+      userSelect: "none",
+      opacity: 0.38,
+      display: "flex",
+      alignItems: "center",
+      gap: "5px",
     }}
   >
-    {text}
+    <span
+      style={{
+        fontSize: "14px",
+        color: "#555",
+        fontWeight: 400,
+        letterSpacing: "0.01em",
+      }}
+    >
+      @Powered by
+    </span>
+    <span
+      style={{
+        fontSize: "14px",
+        color: "#111",
+        fontWeight: 700,
+        letterSpacing: "0.04em",
+      }}
+    >
+      HR Labs
+    </span>
   </div>
 );
 
@@ -89,8 +121,8 @@ const LoadingScreen = () => (
   </div>
 );
 
-// ── User Avatar / Info Badge ───────────────────────────────────────────────
-const UserBadge = ({ fullName, role, onLogout }) => {
+// Navbar — shows Hello {name} + logout; no branch badge
+const Navbar = ({ fullName, role, onLogout }) => {
   const initials = fullName
     ? fullName
         .split(" ")
@@ -99,6 +131,7 @@ const UserBadge = ({ fullName, role, onLogout }) => {
         .toUpperCase()
         .slice(0, 2)
     : "?";
+  const firstName = fullName ? fullName.split(" ")[0] : "there";
 
   return (
     <div
@@ -110,8 +143,8 @@ const UserBadge = ({ fullName, role, onLogout }) => {
           {initials}
         </div>
         <div className="leading-tight">
-          <p className="text-xs font-semibold text-gray-800 max-w-[120px] truncate">
-            {fullName || "User"}
+          <p className="text-xs font-semibold text-gray-800">
+            Hello, {firstName} 👋
           </p>
           {role && (
             <p className="text-[10px] text-indigo-500 font-medium capitalize">
@@ -145,7 +178,7 @@ const UserBadge = ({ fullName, role, onLogout }) => {
   );
 };
 
-// ── Branch accent colors ────────────────────────────────────────────────────
+// ── Branch accent colors ───────────────────────────────────
 const BRANCH_ACCENTS = [
   {
     bg: "from-orange-400 to-rose-500",
@@ -177,51 +210,27 @@ const BRANCH_ACCENTS = [
   },
 ];
 
-// ── Branch Selection Screen ────────────────────────────────────────────────
+// ── Branch Selection Screen ────────────────────────────────
 const BranchSelectionScreen = ({ onSelectBranch }) => (
   <>
     <Logo />
     <style>{`
       @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500&display=swap');
-      .branch-card {
-        font-family: 'Sora', sans-serif;
-        cursor: pointer;
-        border-radius: 20px;
-        overflow: hidden;
-        border: 2px solid transparent;
-        background: white;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.07);
-        transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease, border-color 0.18s ease;
-        position: relative;
-      }
-      @media (hover: hover) {
-        .branch-card:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 16px 40px rgba(0,0,0,0.13); }
-      }
-      .branch-card .card-header { padding: 24px 20px 18px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
-      .branch-card .card-footer { padding: 14px 20px; border-top: 1px solid rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
-      .branch-icon-wrap { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
-      .branch-label { font-size: 20px; font-weight: 800; color: #1e1b4b; line-height: 1.2; }
-      .branch-city { font-size: 12px; font-weight: 500; color: #6b7280; margin-top: 2px; font-family: 'DM Sans', sans-serif; }
-      .code-badge { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; }
-      .branch-screen-bg {
-        min-height: 100vh;
-        background: #f8f7ff;
-        background-image: radial-gradient(ellipse at 10% 20%, rgba(99,102,241,0.08) 0%, transparent 60%), radial-gradient(ellipse at 90% 80%, rgba(251,113,133,0.07) 0%, transparent 60%);
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        padding: 80px 16px 40px; font-family: 'Sora', sans-serif;
-      }
-      .branch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; width: 100%; max-width: 800px; }
-      @media (max-width: 480px) { .branch-grid { grid-template-columns: 1fr; } }
-      .screen-title { font-size: 28px; font-weight: 800; color: #1e1b4b; text-align: center; margin-bottom: 6px; }
-      .screen-sub { font-size: 14px; color: #6b7280; text-align: center; margin-bottom: 32px; font-family: 'DM Sans', sans-serif; }
-      @media (min-width: 640px) {
-        .screen-title { font-size: 36px; }
-        .screen-sub { font-size: 15px; }
-        .branch-card .card-header { padding: 32px 28px 24px; gap: 14px; }
-        .branch-card .card-footer { padding: 16px 28px; }
-      }
-      .arrow-circle { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-
+      .branch-card { font-family:'Sora',sans-serif; cursor:pointer; border-radius:20px; overflow:hidden; border:2px solid transparent; background:white; box-shadow:0 4px 20px rgba(0,0,0,0.07); transition:transform 0.22s cubic-bezier(.34,1.56,.64,1),box-shadow 0.22s ease,border-color 0.18s ease; position:relative; }
+      @media (hover:hover) { .branch-card:hover { transform:translateY(-6px) scale(1.02); box-shadow:0 16px 40px rgba(0,0,0,0.13); } }
+      .branch-card .card-header { padding:24px 20px 18px; display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
+      .branch-card .card-footer { padding:14px 20px; border-top:1px solid rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:space-between; font-size:13px; font-weight:600; letter-spacing:0.02em; }
+      .branch-icon-wrap { width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; }
+      .branch-label { font-size:20px; font-weight:800; color:#1e1b4b; line-height:1.2; }
+      .branch-city { font-size:12px; font-weight:500; color:#6b7280; margin-top:2px; font-family:'DM Sans',sans-serif; }
+      .code-badge { font-size:11px; font-weight:700; letter-spacing:0.08em; padding:3px 10px; border-radius:999px; text-transform:uppercase; }
+      .branch-screen-bg { min-height:100vh; background:#f8f7ff; background-image:radial-gradient(ellipse at 10% 20%,rgba(99,102,241,0.08) 0%,transparent 60%),radial-gradient(ellipse at 90% 80%,rgba(251,113,133,0.07) 0%,transparent 60%); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 16px 40px; font-family:'Sora',sans-serif; }
+      .branch-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; width:100%; max-width:800px; }
+      @media (max-width:480px) { .branch-grid { grid-template-columns:1fr; } }
+      .screen-title { font-size:28px; font-weight:800; color:#1e1b4b; text-align:center; margin-bottom:6px; }
+      .screen-sub { font-size:14px; color:#6b7280; text-align:center; margin-bottom:32px; font-family:'DM Sans',sans-serif; }
+      @media (min-width:640px) { .screen-title { font-size:36px; } .screen-sub { font-size:15px; } .branch-card .card-header { padding:32px 28px 24px; gap:14px; } .branch-card .card-footer { padding:16px 28px; } }
+      .arrow-circle { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
     `}</style>
     <div className="branch-screen-bg">
       <p className="screen-title">Choose Your Branch</p>
@@ -302,11 +311,11 @@ const BranchSelectionScreen = ({ onSelectBranch }) => (
         })}
       </div>
     </div>
-    <Watermark text="HRLabs" />
+    <Watermark />
   </>
 );
 
-// ── OTP Input Component ────────────────────────────────────────────────────
+// ── OTP Input Component ────────────────────────────────────
 const OtpInput = ({ value, onChange, length = 6 }) => {
   const digits = value
     .split("")
@@ -318,21 +327,17 @@ const OtpInput = ({ value, onChange, length = 6 }) => {
     const newDigits = [...digits];
     newDigits[index] = val;
     onChange(newDigits.join(""));
-    if (val && index < length - 1) {
+    if (val && index < length - 1)
       document.getElementById(`otp-${index + 1}`)?.focus();
-    }
   };
-
   const handleKeyDown = (index, e) => {
-    if (e.key === "Backspace" && !digits[index] && index > 0) {
+    if (e.key === "Backspace" && !digits[index] && index > 0)
       document.getElementById(`otp-${index - 1}`)?.focus();
-    }
     if (e.key === "ArrowLeft" && index > 0)
       document.getElementById(`otp-${index - 1}`)?.focus();
     if (e.key === "ArrowRight" && index < length - 1)
       document.getElementById(`otp-${index + 1}`)?.focus();
   };
-
   const handlePaste = (e) => {
     e.preventDefault();
     const pasted = e.clipboardData
@@ -347,7 +352,6 @@ const OtpInput = ({ value, onChange, length = 6 }) => {
 
   return (
     <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
-      {" "}
       {digits.map((digit, i) => (
         <input
           key={i}
@@ -379,7 +383,7 @@ const OtpInput = ({ value, onChange, length = 6 }) => {
   );
 };
 
-// ── Main App ───────────────────────────────────────────────────────────────
+// ── Main App ───────────────────────────────────────────────
 function App() {
   const [step, setStep] = useState("branch");
   const [selectedBranch, setSelectedBranch] = useState(null);
@@ -401,6 +405,7 @@ function App() {
   const [otpValue, setOtpValue] = useState("");
   const [otpError, setOtpError] = useState("");
   const [otpMessage, setOtpMessage] = useState("");
+  const [otpResent, setOtpResent] = useState(false); // ← resend feedback
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [pendingUsername, setPendingUsername] = useState("");
 
@@ -413,7 +418,7 @@ function App() {
   const [calculating, setCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState("");
 
-  // ── Session expired — clear auth storage but keep device_token ────────
+  // ── Session expired ────────────────────────────────────────
   const handleSessionExpired = useCallback(() => {
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("branchCode");
@@ -421,7 +426,6 @@ function App() {
     localStorage.removeItem("username");
     localStorage.removeItem("full_name");
     localStorage.removeItem("role");
-    // device_token_blr intentionally NOT removed
 
     setJwtToken("");
     setLoggedInUser({ username: "", full_name: "", role: "" });
@@ -434,7 +438,7 @@ function App() {
     setStep("login");
   }, []);
 
-  // ── Authenticated fetch wrapper ────────────────────────────────────────
+  // ── Authenticated fetch ────────────────────────────────────
   const authFetch = useCallback(
     async (url, options = {}) => {
       const token = localStorage.getItem("jwt_token") || "";
@@ -453,7 +457,7 @@ function App() {
     [handleSessionExpired],
   );
 
-  // ── Restore session from localStorage on mount ─────────────────────────
+  // ── Restore session on mount ───────────────────────────────
   useEffect(() => {
     const savedAuth = localStorage.getItem("isAuthenticated");
     const savedBranchCode = localStorage.getItem("branchCode");
@@ -490,7 +494,7 @@ function App() {
     setStep("login");
   };
 
-  // ── Step 1: POST /login ────────────────────────────────────────────────
+  // ── Step 1: POST /login ────────────────────────────────────
   const handleLogin = async () => {
     setLoginError("");
     setIsLoading(true);
@@ -505,6 +509,8 @@ function App() {
         ...(savedDeviceToken ? { blr_device_token: savedDeviceToken } : {}),
       };
 
+      console.log("[Login] sending body:", loginBody);
+
       const response = await fetch(
         "https://n8n.automate.ourdept.com/webhook/mli/bangalore/login",
         {
@@ -515,8 +521,14 @@ function App() {
       );
 
       const result = await response.json();
+      console.log("[Login] response status:", response.status);
+      console.log("[Login] response body:", result);
+      response.headers.forEach((v, k) =>
+        console.log(`[Login] header: ${k} = ${v}`),
+      );
 
       const token = extractToken(response, result);
+      console.log("[Login] extracted token:", token ? "present" : "missing");
 
       const userProfile = {
         username: result.username || email.trim(),
@@ -524,8 +536,6 @@ function App() {
         role: result.role || "",
       };
 
-      // Server returns user object directly (no status field) when device token is trusted,
-      // OR returns status:"success" explicitly. Either way, if we have a username back, it worked.
       const isSuccess =
         result.status === "success" ||
         (!result.status && (result.username || result.full_name));
@@ -541,6 +551,7 @@ function App() {
         );
         setOtpValue("");
         setOtpError("");
+        setOtpResent(false);
         setStep("otp");
       } else {
         setLoginError(result.message || "Invalid username or password.");
@@ -553,7 +564,18 @@ function App() {
     }
   };
 
-  // ── Step 2: POST /verify-otp ───────────────────────────────────────────
+  // ── Resend OTP ─────────────────────────────────────────────
+  const handleResendOtp = async () => {
+    setOtpResent(false);
+    setOtpError("");
+    setOtpValue("");
+    await handleLogin();
+    setOtpResent(true);
+    // Auto-hide the "sent!" banner after 4 seconds
+    setTimeout(() => setOtpResent(false), 4000);
+  };
+
+  // ── Step 2: POST /verify-otp ───────────────────────────────
   const handleVerifyOtp = async () => {
     if (otpValue.replace(/\s/g, "").length < 6) {
       setOtpError("Please enter the complete 6-digit code.");
@@ -577,19 +599,23 @@ function App() {
       );
 
       const result = await response.json();
+      console.log("[OTP] response body:", result);
+      response.headers.forEach((v, k) =>
+        console.log(`[OTP] header: ${k} = ${v}`),
+      );
 
       const token = extractToken(response, result);
+      console.log("[OTP] extracted token:", token ? "present" : "missing");
 
-      // Read and save the branch-scoped device token from response headers
-      const branchKey = selectedBranch?.code?.toLowerCase(); // "blr"
+      const branchKey = selectedBranch?.code?.toLowerCase();
       const branchDeviceToken =
         response.headers.get(`${branchKey}_device_token`) ||
         response.headers.get(`${branchKey?.toUpperCase()}_device_token`) ||
         result[`${branchKey}_device_token`] ||
         "";
-      if (branchDeviceToken) {
+      console.log("[OTP] branchDeviceToken:", branchDeviceToken || "not found");
+      if (branchDeviceToken)
         saveDeviceToken(selectedBranch?.code, branchDeviceToken);
-      }
 
       const isSuccess = result.status === "success" || response.ok;
 
@@ -611,7 +637,7 @@ function App() {
     }
   };
 
-  // ── Persist session ────────────────────────────────────────────────────
+  // ── Persist session ────────────────────────────────────────
   const finalizeLogin = (userProfile, token) => {
     setLoggedInUser(userProfile);
     setJwtToken(token);
@@ -638,13 +664,13 @@ function App() {
     setOtpValue("");
     setOtpError("");
     setOtpMessage("");
+    setOtpResent(false);
     setSelectedProduct(null);
     setProducts([]);
     setFields([]);
     setFormValues({});
     setCalculation(null);
 
-    // Clear auth data — device_token_blr intentionally NOT removed
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("branchCode");
     localStorage.removeItem("jwt_token");
@@ -657,7 +683,6 @@ function App() {
     if (e.key === "Enter") handleLogin();
   };
 
-  // ── All app API calls go through authFetch ─────────────────────────────
   const fetchProducts = async () => {
     try {
       const response = await authFetch(
@@ -744,7 +769,6 @@ function App() {
       }
 
       const result = await response.json();
-
       if (!result || typeof result !== "object")
         throw new Error("Invalid response from server");
       if (!result["Net Total"])
@@ -774,21 +798,21 @@ function App() {
     setCalculationError("");
   };
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────
 
   if (initialLoading)
     return (
       <>
         <Logo />
         <LoadingScreen />
-        <Watermark text="HRLabs" />
+        <Watermark />
       </>
     );
 
   if (step === "branch")
     return <BranchSelectionScreen onSelectBranch={handleBranchSelect} />;
 
-  // ── Login Screen ──────────────────────────────────────────────────────────
+  // ── Login Screen ───────────────────────────────────────────
   if (step === "login") {
     return (
       <>
@@ -856,12 +880,12 @@ function App() {
             </div>
           </div>
         </div>
-        <Watermark text="HRLabs" />
+        <Watermark />
       </>
     );
   }
 
-  // ── OTP Verification Screen ───────────────────────────────────────────────
+  // ── OTP Verification Screen ────────────────────────────────
   if (step === "otp") {
     return (
       <>
@@ -874,6 +898,7 @@ function App() {
                   setStep("login");
                   setOtpValue("");
                   setOtpError("");
+                  setOtpResent(false);
                 }}
                 className="text-indigo-600 hover:text-indigo-700 flex items-center gap-1 text-sm"
               >
@@ -912,6 +937,26 @@ function App() {
             <div className="space-y-6">
               <OtpInput value={otpValue} onChange={setOtpValue} length={6} />
 
+              {/* Resent success banner */}
+              {otpResent && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2.5 rounded-lg text-sm text-center flex items-center justify-center gap-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Code sent again! Check with your administrator.
+                </div>
+              )}
+
               {otpError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm text-center">
                   {otpError}
@@ -936,69 +981,59 @@ function App() {
               <p className="text-center text-xs text-gray-400">
                 Didn't receive a code?{" "}
                 <button
-                  onClick={handleLogin}
-                  className="text-indigo-500 hover:text-indigo-700 font-medium underline underline-offset-2"
+                  onClick={handleResendOtp}
+                  disabled={isLoading}
+                  className="text-indigo-500 hover:text-indigo-700 font-medium underline underline-offset-2 disabled:opacity-50"
                 >
-                  Resend
+                  {isLoading ? "Sending..." : "Resend"}
                 </button>
               </p>
             </div>
           </div>
         </div>
-        <Watermark text="HRLabs" />
+        <Watermark />
       </>
     );
   }
 
-  // ── Products List ─────────────────────────────────────────────────────────
+  // ── Products List ──────────────────────────────────────────
   if (!selectedProduct) {
     return (
       <>
         <Logo />
-        <UserBadge
+        <Navbar
           fullName={loggedInUser.full_name}
           role={loggedInUser.role}
           onLogout={handleLogout}
         />
         <div className="min-h-screen bg-gray-50 px-4 py-6 sm:p-8">
-          <div className="max-w-6xl mx-auto" style={{ marginTop: "72px" }}>
+          <div className="max-w-7xl mx-auto" style={{ marginTop: "72px" }}>
             <div className="mb-6 sm:mb-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1">
-                    {loggedInUser.full_name
-                      ? `Hello, ${loggedInUser.full_name.split(" ")[0]} 👋`
-                      : "Select a Product"}
-                  </h1>
-                  <p className="text-gray-600 text-sm sm:text-base">
-                    Choose a product to get a quotation
-                  </p>
-                </div>
-                <span className="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full font-semibold text-sm self-start sm:self-auto">
-                  📍 {selectedBranch?.label}
-                </span>
-              </div>
+              <p className="text-gray-500 text-sm">
+                Select a product below to get a quotation
+              </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {/* 4-column grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {products.map((product) => (
                 <div
                   key={product.row_number}
                   className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border-2 border-transparent hover:border-indigo-500"
                   onClick={() => handleProductSelect(product)}
                 >
-                  <div className="p-5 sm:p-6">
+                  <div className="p-5">
                     <div className="flex items-start justify-between mb-3 gap-2">
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-800 leading-tight">
+                      <h3 className="text-base font-bold text-gray-800 leading-tight">
                         {product["Products Name"]}
                       </h3>
-                      <span className="bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0">
+                      <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0">
                         {product["Products Code"]}
                       </span>
                     </div>
-                    <p className="text-gray-600 mb-4 text-sm">
+                    <p className="text-gray-500 mb-4 text-xs leading-relaxed">
                       {product.Description}
                     </p>
-                    <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg transition text-sm font-medium">
+                    <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg transition text-xs font-semibold">
                       Select Product
                     </button>
                   </div>
@@ -1007,28 +1042,46 @@ function App() {
             </div>
           </div>
         </div>
-        <Watermark text="HRLabs" />
+        <Watermark />
       </>
     );
   }
 
-  // ── Product Form + Quotation ───────────────────────────────────────────────
+  // ── Product Form + Quotation ───────────────────────────────
   return (
     <>
-      <Logo />
-      <UserBadge
+      {/* Logo navigates back to products */}
+      <Logo onClick={handleBackToProducts} />
+      <Navbar
         fullName={loggedInUser.full_name}
         role={loggedInUser.role}
         onLogout={handleLogout}
       />
       <div className="min-h-screen bg-gray-50 px-4 py-6 sm:p-8">
         <div className="max-w-7xl mx-auto" style={{ marginTop: "72px" }}>
-          <button
-            onClick={handleBackToProducts}
-            className="mb-5 text-indigo-600 hover:text-indigo-700 flex items-center gap-2 text-sm"
-          >
-            ← Back to Products
-          </button>
+          {/* Back button — right-aligned, highlighted */}
+          <div className="flex justify-end mb-5">
+            <button
+              onClick={handleBackToProducts}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow transition duration-200"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              Back to Products
+            </button>
+          </div>
+
           <div className="flex flex-col lg:flex-row gap-5 lg:gap-6 items-start">
             {/* LEFT: Form */}
             <div className="bg-white rounded-xl shadow-lg p-5 sm:p-8 w-full lg:flex-1 min-w-0">
@@ -1076,12 +1129,11 @@ function App() {
                                         : option,
                                     )
                                   }
-                                  className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-150
-                                    ${
-                                      formValues[field.field] === option
-                                        ? "bg-indigo-600 border-indigo-600 text-white"
-                                        : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                                    }`}
+                                  className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-150 ${
+                                    formValues[field.field] === option
+                                      ? "bg-indigo-600 border-indigo-600 text-white"
+                                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                                  }`}
                                 >
                                   {option}
                                 </button>
@@ -1202,7 +1254,7 @@ function App() {
           </div>
         </div>
       </div>
-      <Watermark text="HRLabs" />
+      <Watermark />
     </>
   );
 }
