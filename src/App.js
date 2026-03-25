@@ -250,8 +250,8 @@ const BranchSelectionScreen = ({ onSelectBranch, logoSrc }) => (
         src={logo}
         alt="MLI"
         style={{
-          height: "90px",
-          width: "120px",
+          height: "140px",
+          width: "160px",
           borderRadius: "16px",
           objectFit: "cover",
           marginBottom: "20px",
