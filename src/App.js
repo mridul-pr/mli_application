@@ -12,18 +12,17 @@ async function sha256(message) {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// ── Utility: get or create a permanent device token ────────
-function getOrCreateDeviceToken() {
-  const existing = localStorage.getItem("device_token");
-  if (existing) return existing;
-  // Generate a UUID v4
-  const uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-  localStorage.setItem("device_token", uuid);
-  return uuid;
+// ── Utility: read the branch-scoped device token (set after first OTP) ──
+function getSavedDeviceToken(branchCode) {
+  if (!branchCode) return null;
+  return (
+    localStorage.getItem(`device_token_${branchCode.toLowerCase()}`) || null
+  );
+}
+
+function saveDeviceToken(branchCode, token) {
+  if (!branchCode || !token) return;
+  localStorage.setItem(`device_token_${branchCode.toLowerCase()}`, token);
 }
 
 // ── UI Components ─────────────────────────────────────────────────────────
@@ -440,9 +439,6 @@ function App() {
 
   // ── Restore session from localStorage on mount ─────────────────────────
   useEffect(() => {
-    // Ensure a device_token always exists (created once, lives forever)
-    getOrCreateDeviceToken();
-
     const savedAuth = localStorage.getItem("isAuthenticated");
     const savedBranchCode = localStorage.getItem("branchCode");
     const savedToken = localStorage.getItem("jwt_token");
@@ -485,19 +481,21 @@ function App() {
 
     try {
       const passwordHash = await sha256(password);
-      // Always read the permanent device_token from localStorage
-      const deviceToken = getOrCreateDeviceToken();
+      // Send the saved device token for this branch if available (skips OTP when server trusts it)
+      const savedDeviceToken = getSavedDeviceToken(selectedBranch?.code);
+
+      const loginBody = {
+        username: email.trim(),
+        password_hash: passwordHash,
+        ...(savedDeviceToken ? { device_token: savedDeviceToken } : {}),
+      };
 
       const response = await fetch(
         "https://n8n.automate.ourdept.com/webhook/mli/bangalore/login",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: email.trim(),
-            password_hash: passwordHash,
-            device_token: deviceToken,
-          }),
+          body: JSON.stringify(loginBody),
         },
       );
 
@@ -574,6 +572,18 @@ function App() {
         result.token ||
         result.access_token ||
         "";
+
+      // Persist the branch-scoped device token returned by the server after OTP.
+      // The header name matches the branch code e.g. "blr_device_token" for BLR.
+      const branchKey = selectedBranch?.code?.toLowerCase(); // "blr"
+      const branchDeviceToken =
+        response.headers.get(`${branchKey}_device_token`) ||
+        response.headers.get(`${branchKey?.toUpperCase()}_device_token`) ||
+        result[`${branchKey}_device_token`] ||
+        "";
+      if (branchDeviceToken) {
+        saveDeviceToken(selectedBranch?.code, branchDeviceToken);
+      }
 
       const isSuccess = result.status === "success" || response.ok;
 
