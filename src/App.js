@@ -2,7 +2,26 @@ import { useState, useEffect, useCallback } from "react";
 import logo from "./images/MLI logo.jpeg";
 
 // ─── Hardcoded Config ──────────────────────────────────────
-const BRANCHES = [{ label: "Bangalore", city: "Bengaluru", code: "BLR" }];
+const BRANCHES = [
+  {
+    label: "Bangalore",
+    city: "Bengaluru",
+    code: "BLR",
+    apiBase: "https://n8n.automate.ourdept.com/webhook/mli/bangalore",
+  },
+  {
+    label: "Hyderabad",
+    city: "Hyderabad",
+    code: "HYD",
+    apiBase: "https://n8n.automate.ourdept.com/webhook/mli/bangalore", // uses Bangalore endpoints
+  },
+  {
+    label: "Chennai",
+    city: "Chennai",
+    code: "CHN",
+    apiBase: "https://n8n.automate.ourdept.com/webhook/mli/chennai",
+  },
+];
 
 // ── Utility: SHA-256 hash ──────────────────────────────────
 async function sha256(message) {
@@ -42,7 +61,6 @@ function extractToken(response, result) {
 
 // ── UI Components ──────────────────────────────────────────
 
-// Clickable logo — navigates to products (or stays static on non-app pages)
 const Logo = ({ onClick }) => (
   <div
     style={{ position: "fixed", top: "12px", left: "12px", zIndex: 1000 }}
@@ -70,7 +88,6 @@ const Logo = ({ onClick }) => (
   </div>
 );
 
-// Watermark — bottom-right, cleaner style, HR Labs same weight as "Powered by"
 const Watermark = () => (
   <div
     style={{
@@ -121,7 +138,6 @@ const LoadingScreen = () => (
   </div>
 );
 
-// Navbar — Hello {name} centered, logout on right
 const Navbar = ({ fullName, role, onLogout }) => {
   const initials = fullName
     ? fullName
@@ -135,7 +151,6 @@ const Navbar = ({ fullName, role, onLogout }) => {
 
   return (
     <>
-      {/* Centered greeting */}
       <div
         style={{
           position: "fixed",
@@ -161,7 +176,6 @@ const Navbar = ({ fullName, role, onLogout }) => {
         </div>
       </div>
 
-      {/* Logout on right */}
       <div
         style={{ position: "fixed", top: "12px", right: "12px", zIndex: 1000 }}
       >
@@ -223,8 +237,7 @@ const BRANCH_ACCENTS = [
   },
 ];
 
-// ── Branch Selection Screen — no navbar, big centered logo ─
-const BranchSelectionScreen = ({ onSelectBranch, logoSrc }) => (
+const BranchSelectionScreen = ({ onSelectBranch }) => (
   <>
     <style>{`
       @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500&display=swap');
@@ -245,7 +258,6 @@ const BranchSelectionScreen = ({ onSelectBranch, logoSrc }) => (
       .arrow-circle { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
     `}</style>
     <div className="branch-screen-bg">
-      {/* Big centered logo */}
       <img
         src={logo}
         alt="MLI"
@@ -443,6 +455,17 @@ function App() {
   const [calculating, setCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState("");
 
+  // ── Helper: get apiBase for a branch (falls back to current selectedBranch) ──
+  const getApiBase = useCallback(
+    (branch = null) => {
+      const b = branch || selectedBranch;
+      return (
+        b?.apiBase || "https://n8n.automate.ourdept.com/webhook/mli/bangalore"
+      );
+    },
+    [selectedBranch],
+  );
+
   // ── Session expired ────────────────────────────────────────
   const handleSessionExpired = useCallback(() => {
     localStorage.removeItem("isAuthenticated");
@@ -502,7 +525,7 @@ function App() {
           role: savedRole || "",
         });
         setStep("app");
-        fetchProducts();
+        fetchProductsForBranch(branch);
       }
     }
 
@@ -531,19 +554,21 @@ function App() {
       const loginBody = {
         username: email.trim(),
         password_hash: passwordHash,
-        ...(savedDeviceToken ? { blr_device_token: savedDeviceToken } : {}),
+        ...(savedDeviceToken
+          ? {
+              [`${selectedBranch.code.toLowerCase()}_device_token`]:
+                savedDeviceToken,
+            }
+          : {}),
       };
 
       console.log("[Login] sending body:", loginBody);
 
-      const response = await fetch(
-        "https://n8n.automate.ourdept.com/webhook/mli/bangalore/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(loginBody),
-        },
-      );
+      const response = await fetch(`${getApiBase()}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(loginBody),
+      });
 
       const result = await response.json();
       console.log("[Login] response status:", response.status);
@@ -610,17 +635,14 @@ function App() {
     setIsVerifyingOtp(true);
 
     try {
-      const response = await fetch(
-        "https://n8n.automate.ourdept.com/webhook/mli/bangalore/verify-otp",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: pendingUsername,
-            otp_code: otpValue,
-          }),
-        },
-      );
+      const response = await fetch(`${getApiBase()}/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: pendingUsername,
+          otp_code: otpValue,
+        }),
+      });
 
       const result = await response.json();
       console.log("[OTP] response body:", result);
@@ -674,7 +696,7 @@ function App() {
     localStorage.setItem("full_name", userProfile.full_name);
     localStorage.setItem("role", userProfile.role);
 
-    fetchProducts();
+    fetchProductsForBranch(selectedBranch);
   };
 
   const handleLogout = () => {
@@ -707,12 +729,13 @@ function App() {
     if (e.key === "Enter") handleLogin();
   };
 
-  const fetchProducts = async () => {
+  // ── Fetch products — accepts branch explicitly to avoid stale closure ──
+  const fetchProductsForBranch = async (branch) => {
     try {
-      const response = await authFetch(
-        "https://n8n.automate.ourdept.com/webhook/mli/bangalore/products/list",
-        { cache: "no-store" },
-      );
+      const apiBase = branch?.apiBase || getApiBase();
+      const response = await authFetch(`${apiBase}/products/list`, {
+        cache: "no-store",
+      });
       const result = await response.json();
       setProducts(result[0]?.data || []);
     } catch (error) {
@@ -730,17 +753,14 @@ function App() {
     setCalculationError("");
 
     try {
-      const response = await authFetch(
-        "https://n8n.automate.ourdept.com/webhook/mli/bangalore/product/fields",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            product: product["Products Name"],
-            productCode: product["Products Code"],
-            sheetId: product["Sheet ID"] ?? "",
-          }),
-        },
-      );
+      const response = await authFetch(`${getApiBase()}/product/fields`, {
+        method: "POST",
+        body: JSON.stringify({
+          product: product["Products Name"],
+          productCode: product["Products Code"],
+          sheetId: product["Sheet ID"] ?? "",
+        }),
+      });
       const result = await response.json();
       setFields(result.data || []);
       const initialValues = {};
@@ -774,18 +794,15 @@ function App() {
           value === "" || value === null || value === undefined ? "0" : value;
       });
 
-      const response = await authFetch(
-        "https://n8n.automate.ourdept.com/webhook/mli/bangalore/product/price",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            product: selectedProduct["Products Name"],
-            productCode: selectedProduct["Products Code"],
-            sheetID: selectedProduct["Sheet ID"] ?? "",
-            values,
-          }),
-        },
-      );
+      const response = await authFetch(`${getApiBase()}/product/price`, {
+        method: "POST",
+        body: JSON.stringify({
+          product: selectedProduct["Products Name"],
+          productCode: selectedProduct["Products Code"],
+          sheetID: selectedProduct["Sheet ID"] ?? "",
+          values,
+        }),
+      });
 
       if (!response.ok) {
         const text = await response.text();
@@ -1036,7 +1053,6 @@ function App() {
                 Select a product below to get a quotation
               </p>
             </div>
-            {/* 4-column grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {products.map((product) => (
                 <div
@@ -1046,7 +1062,6 @@ function App() {
                 >
                   <div className="p-5">
                     <div className="flex items-start justify-between mb-3 gap-2">
-                      {/* Increased product name font size */}
                       <h3 className="text-lg font-bold text-gray-800 leading-tight">
                         {product["Products Name"]}
                       </h3>
@@ -1054,7 +1069,6 @@ function App() {
                         {product["Products Code"]}
                       </span>
                     </div>
-                    {/* Increased description font size */}
                     <p className="text-gray-500 mb-4 text-sm leading-relaxed">
                       {product.Description}
                     </p>
@@ -1075,7 +1089,6 @@ function App() {
   // ── Product Form + Quotation ───────────────────────────────
   return (
     <>
-      {/* Logo navigates back to products */}
       <Logo onClick={handleBackToProducts} />
       <Navbar
         fullName={loggedInUser.full_name}
@@ -1085,7 +1098,6 @@ function App() {
       <div className="min-h-screen bg-gray-50 px-4 py-6 sm:p-8">
         <div className="max-w-7xl mx-auto" style={{ marginTop: "72px" }}>
           <div className="flex flex-col lg:flex-row gap-5 lg:gap-6 items-start">
-            {/* LEFT: Form — Back to Products button sits above the form card */}
             <div className="w-full lg:flex-1 min-w-0">
               <div className="flex justify-end mb-3">
                 <button
@@ -1206,7 +1218,6 @@ function App() {
               </div>
             </div>
 
-            {/* RIGHT: Quotation Result */}
             <div className="w-full lg:w-80 lg:flex-shrink-0">
               {calculation ? (
                 <div className="bg-white rounded-xl shadow-lg p-5 sm:p-6 lg:sticky lg:top-24">
